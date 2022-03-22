@@ -10,4 +10,10 @@ app.use(cors());
 app.use(json());
 app.use(router);
 
+<<<<<<< HEAD
+app.listen(process.env.PORT || 4000, () => {
+  console.log("Server listening on PORT 4000");
+});
+=======
 app.listen(process.env.PORT, () => { console.log(`Server running on PORT ${process.env.PORT}`)})
+>>>>>>> main
