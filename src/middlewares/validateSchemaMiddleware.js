@@ -1,5 +1,6 @@
 import { stripHtml } from "string-strip-html"
 import loginSchema from "../schemas/loginSchema.js"
+import userSchema from "../schemas/userSchema.js"
 
 function sanitizeString(string){
     return (stripHtml(string).result).trim()
@@ -7,6 +8,7 @@ function sanitizeString(string){
 
 const schemas = {
     "/login": loginSchema,
+    "/sign-up": userSchema
 }
 
 export default async function validateSchemaMiddleware(req, res, next){
@@ -18,7 +20,7 @@ export default async function validateSchemaMiddleware(req, res, next){
     })
 
     const validation = schema.validate(body, { abortEarly: false })
-    if(validation.error) return res.status(400).send(validation.error.message)
+    if(validation.error) return res.status(422).send(validation.error.message)
 
     next()
 }
