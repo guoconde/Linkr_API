@@ -1,4 +1,4 @@
-import connection from "../../db.js";
+import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js";
 import { hashtagsRepository } from "../repositories/hashtagsRepository.js";
 import postsRepository from "../repositories/postsRepository.js";
 
@@ -33,9 +33,9 @@ export async function createPost(req, res) {
     
     const { rows: hashtagIds} = await hashtagsRepository.find(params, hashtags);
 
-    const hashtagRelations = hashtagIds.map(hashtag => `('${hashtag}', ${post.id})`).join(`, `);
+    const hashtagRelations = hashtagIds.map(hashtag => `('${hashtag.id}', ${post.id})`).join(`, `);
     
-    await hashtagsPostsRepository(hashtagRelations);
+    await hashtagsPostsRepository.insert(hashtagRelations);
 
     res.sendStatus(201);
   } catch (error) {
