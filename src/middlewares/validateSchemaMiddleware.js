@@ -1,5 +1,6 @@
 import { stripHtml } from "string-strip-html"
 import loginSchema from "../schemas/loginSchema.js"
+import postSchema from "../schemas/postSchema.js"
 import userSchema from "../schemas/userSchema.js"
 
 function sanitizeString(string){
@@ -8,6 +9,7 @@ function sanitizeString(string){
 
 const schemas = {
     "/login": loginSchema,
+    "/posts": postSchema,
     "/sign-up": userSchema
 }
 
