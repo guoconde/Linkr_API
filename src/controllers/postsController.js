@@ -10,11 +10,14 @@ export async function createPost(req, res) {
   try {
     const hashtags = description.split(" ").filter((str) => validateHashtags.test(str));
     const params = hashtags.map((h, index) => `$${index + 1}`).join(", ");
-
-    const result = await hashtagsRepository.find(params, hashtags);
+    
+    let result;
+    if (params) {
+      result = await hashtagsRepository.find(params, hashtags);
+    }
 
     const hashtagsToBeCreated = [...hashtags];
-    result.rows.forEach((h) => {
+    result?.rows.forEach((h) => {
       const indexToDelete = hashtagsToBeCreated.indexOf(h.name);
       if (indexToDelete !== -1) {
         hashtagsToBeCreated.splice(indexToDelete, 1);
@@ -29,13 +32,15 @@ export async function createPost(req, res) {
     
     await postsRepository.insert(user.id, description, url);
 
-    const { rows: [post] } = await postsRepository.find(user.id);
-    
-    const { rows: hashtagIds} = await hashtagsRepository.find(params, hashtags);
+    if (params) {
+      const { rows: [post] } = await postsRepository.find(user.id);
 
-    const hashtagRelations = hashtagIds.map(hashtag => `('${hashtag.id}', ${post.id})`).join(`, `);
-    
-    await hashtagsPostsRepository.insert(hashtagRelations);
+      const { rows: hashtagIds} = await hashtagsRepository.find(params, hashtags);
+
+      const hashtagRelations = hashtagIds.map(hashtag => `('${hashtag.id}', ${post.id})`).join(`, `);
+      
+      await hashtagsPostsRepository.insert(hashtagRelations);
+    }
 
     res.sendStatus(201);
   } catch (error) {

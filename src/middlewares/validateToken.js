@@ -12,8 +12,7 @@ export async function validateToken(req, res, next) {
     res.locals.user = { id: data }
     
   } catch (error) {
-    console.log(error);
-    res.sendStatus(500);
+    res.status(401).send("Token is invalid");
   }
   next();
 }
