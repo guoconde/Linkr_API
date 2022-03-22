@@ -3,14 +3,15 @@ import bcrypt from 'bcrypt';
 
 export async function register(req, res) {
   const { username, email, password, photo } = req.body;
+  console.log(req.body);
 
   try {
     const searchedUser = await connection.query(`
       SELECT 
         *
       FROM users
-      WHERE email=$1 OR name=$2
-    `, [email, username]);
+      WHERE email=$1
+    `, [email]);
     if(searchedUser.rowCount !== 0){
       res.sendStatus(409);
       return;
