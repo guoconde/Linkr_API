@@ -1,5 +1,6 @@
 import { stripHtml } from "string-strip-html"
 import loginSchema from "../schemas/loginSchema.js"
+import postSchema from "../schemas/postSchema.js"
 
 function sanitizeString(string){
     return (stripHtml(string).result).trim()
@@ -7,6 +8,7 @@ function sanitizeString(string){
 
 const schemas = {
     "/login": loginSchema,
+    "/posts": postSchema
 }
 
 export default async function validateSchemaMiddleware(req, res, next){
