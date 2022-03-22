@@ -2,8 +2,7 @@ import connection from "../db.js";
 import bcrypt from 'bcrypt';
 
 export async function register(req, res) {
-  const { username, email, password, photo } = req.body;
-  console.log(req.body);
+  const { username, email, password, picture } = req.body;
 
   try {
     const searchedUser = await connection.query(`
@@ -24,7 +23,7 @@ export async function register(req, res) {
         (name, email, password, photo)
       VALUES
         ($1, $2, $3, $4)
-    `, [username, email, passwordHashed, photo]);
+    `, [username, email, passwordHashed, picture]);
 
     res.sendStatus(201);
   } catch (error) {
