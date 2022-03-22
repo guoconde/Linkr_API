@@ -5,9 +5,9 @@ export async function login(req, res) {
     const { email, password } = req.body;
 
     try {
-        const {token, id} = await authService.login(email, password)
+        const token = await authService.login(email, password)
     
-        res.send({token, id});
+        res.send({token});
     } catch (error) {
         if (error instanceof Unauthorized) return res.status(error.status).send(error.message);
 

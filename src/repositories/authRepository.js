@@ -10,3 +10,15 @@ export async function insert (token, id){
 
     return true;
 }
+
+export async function find (userId){
+    const { rows: [token] } = await connection.query(`
+        SELECT * 
+          FROM sessions 
+         WHERE sessions."userId"=$1
+    `, [userId])
+    
+    if (!token) return null;
+
+    return token;
+}
