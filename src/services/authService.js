@@ -10,13 +10,13 @@ export async function login(email, password){
     
     if (bcrypt.compareSync(password, user.password)) {
         const session = await authRepository.find(user.id)
-        if(session) return session.token
+        if(session) return {token: session.token, photo: user.photo }
 
         const token = jwt.sign(user.id, process.env.JWT_SECRET);
         const result = await authRepository.insert(token, user.id)
         if (!result) throw new Error();
 
-        return (token);
+        return {token, photo: user.photo};
     }
 
     throw new Unauthorized("Email ou senha inválidos")
