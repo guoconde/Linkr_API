@@ -17,9 +17,18 @@ async function find(userId) {
   return promise;
 }
 
+async function posts() {
+  const promisse = await connection.query(`
+    SELECT * FROM posts
+  `)
+
+  return promisse
+}
+
 const postsRepository = {
   insert,
-  find
+  find,
+  posts
 };
 
 export default postsRepository;

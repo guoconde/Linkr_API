@@ -10,7 +10,7 @@ export async function createPost(req, res) {
   try {
     const hashtags = description.split(" ").filter((str) => validateHashtags.test(str));
     const params = hashtags.map((h, index) => `$${index + 1}`).join(", ");
-    
+
     let result;
     if (params) {
       result = await hashtagsRepository.find(params, hashtags);
@@ -25,20 +25,20 @@ export async function createPost(req, res) {
     });
 
     const hashtagValues = hashtagsToBeCreated.map(hashtag => `('${hashtag}')`).join(`, `);
-    
+
     if (hashtagValues) {
       await hashtagsRepository.insert(hashtagValues);
     }
-    
+
     await postsRepository.insert(user.id, description, url);
 
     if (params) {
       const { rows: [post] } = await postsRepository.find(user.id);
 
-      const { rows: hashtagIds} = await hashtagsRepository.find(params, hashtags);
+      const { rows: hashtagIds } = await hashtagsRepository.find(params, hashtags);
 
       const hashtagRelations = hashtagIds.map(hashtag => `('${hashtag.id}', ${post.id})`).join(`, `);
-      
+
       await hashtagsPostsRepository.insert(hashtagRelations);
     }
 
@@ -46,5 +46,18 @@ export async function createPost(req, res) {
   } catch (error) {
     res.sendStatus(500);
     console.log(error);
+  }
+}
+
+export async function allPosts(req, res) {
+
+  try {
+    const { rows: posts } = await postsRepository.posts()
+
+    res.send(posts)
+
+  } catch (error) {
+    res.sendStatus(500);
+    console.log(error)
   }
 }
