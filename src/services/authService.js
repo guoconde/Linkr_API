@@ -5,16 +5,18 @@ import * as authRepository from "../repositories/authRepository.js"
 import jwt from "jsonwebtoken"
 
 export async function login(email, password){
-    const configuration = { expiresIn: 60*60 }
-
     const user = await userRepository.find("email", email)
     if (!user) throw new Unauthorized("Email ou senha inválidos")
     
     if (bcrypt.compareSync(password, user.password)) {
+        const jwtConfiguration = { expiresIn: '1h'}
+        const jwtData = { userId: user.id }
+
         const session = await authRepository.find(user.id)
         if(session) return {token: session.token, photo: user.photo }
 
-        const token = jwt.sign(user.id, process.env.JWT_SECRET, configuration);
+        const token = jwt.sign(jwtData, process.env.JWT_SECRET, jwtConfiguration);
+        
         const result = await authRepository.insert(token, user.id)
         if (!result) throw new Error();
 
