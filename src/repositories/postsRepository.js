@@ -19,7 +19,11 @@ async function find(userId) {
 
 async function posts() {
   const promisse = await connection.query(`
-    SELECT * FROM posts
+  SELECT users.id AS "userId", users.name, users.photo, url, description
+    FROM posts
+    JOIN hashtagsposts ON hashtagsposts."postId" = posts.id
+    JOIN hashtags ON hashtags.id = hashtagsposts."hashtagId"
+    JOIN users ON users.id = posts."userId"
   `)
 
   return promisse
