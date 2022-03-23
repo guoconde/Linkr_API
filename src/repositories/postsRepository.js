@@ -9,7 +9,7 @@ async function insert(userId, description, url) {
   return promise;
 }
 
-async function find(userId) {
+async function findLatestPost(userId) {
   const promise = await connection.query (`
     SELECT * FROM posts WHERE "userId"=$1 ORDER BY id DESC LIMIT 1
   `, [userId]);;
@@ -19,7 +19,7 @@ async function find(userId) {
 
 const postsRepository = {
   insert,
-  find
+  findLatestPost
 };
 
 export default postsRepository;
