@@ -17,9 +17,22 @@ async function find(userId) {
   return promise;
 }
 
+async function posts() {
+  const promisse = await connection.query(`
+  SELECT users.id AS "userId", users.name, users.photo, url, description
+    FROM posts
+    JOIN hashtagsposts ON hashtagsposts."postId" = posts.id
+    JOIN hashtags ON hashtags.id = hashtagsposts."hashtagId"
+    JOIN users ON users.id = posts."userId"
+  `)
+
+  return promisse
+}
+
 const postsRepository = {
   insert,
-  find
+  find,
+  posts
 };
 
 export default postsRepository;
