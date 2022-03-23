@@ -20,3 +20,15 @@ export async function createPost(req, res) {
     console.log(error);
   }
 }
+export async function allPosts(req, res) {
+
+  try {
+    const { rows: posts } = await postsRepository.posts()
+
+    res.send(posts)
+
+  } catch (error) {
+    res.sendStatus(500);
+    console.log(error)
+  }
+}
