@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import dotenv from "dotenv";
-import connection from '../db.js';
+import connection from '../db.js'
+import * as authRepository from "../repositories/authRepository.js"
 dotenv.config();
 
 export default async function validateTokenMiddleware(req, res, next) {
@@ -13,24 +14,24 @@ export default async function validateTokenMiddleware(req, res, next) {
   }
 
   try {
-    const session = await connection.query(`
+    const { rows: [session]} = await connection.query(`
       SELECT * FROM sessions WHERE token=$1
     `, [token]);
-    if(!session.rowCount){
+    if(!session){
       res.status(401).send("Session is invalid");
       return;
     }
 
-    try {
-      const data = jwt.verify(token, secretKey);
+    await jwt.verify(token, secretKey, async (err, decoded) => { 
+      if(err) {
+        await authRepository.remove(session.id)
+        return res.status(401).send("Token expired, please log in again") 
+      }
+
+      res.locals.user = { id: decoded.userId }
+    });
       
-      res.locals.user = { id: data }
-      
-      next();
-    } catch (error) {
-      console.log(error);
-      res.status(401).send("Token is invalid");
-    }
+    next();
   } catch (error) {
     console.log(error);
     res.sendStatus(500);
