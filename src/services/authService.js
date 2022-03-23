@@ -5,6 +5,8 @@ import * as authRepository from "../repositories/authRepository.js"
 import jwt from "jsonwebtoken"
 
 export async function login(email, password){
+    const configuration = { expiresIn: 60*60 }
+
     const user = await userRepository.find("email", email)
     if (!user) throw new Unauthorized("Email ou senha inválidos")
     
@@ -12,7 +14,7 @@ export async function login(email, password){
         const session = await authRepository.find(user.id)
         if(session) return {token: session.token, photo: user.photo }
 
-        const token = jwt.sign(user.id, process.env.JWT_SECRET);
+        const token = jwt.sign(user.id, process.env.JWT_SECRET, configuration);
         const result = await authRepository.insert(token, user.id)
         if (!result) throw new Error();
 
