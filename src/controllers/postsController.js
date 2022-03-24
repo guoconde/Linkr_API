@@ -26,7 +26,6 @@ export async function allPosts(req, res) {
   try {
     const { rows: posts } = await postsRepository.posts()
 
-
     const newPosts = []
 
     for (let i = 0; i < posts.length; i++) {
