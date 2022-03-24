@@ -52,6 +52,25 @@ async function listByHashtag (hashtag){
   return posts;
 }
 
+async function listByUser (userId){
+  const { rows: posts} = await connection.query(`
+      SELECT users.id AS "userId", users.name, users.photo, url, description
+        FROM posts
+        LEFT JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
+        LEFT JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
+        JOIN users ON users.id = posts."userId"
+        WHERE users.id = $1
+        ORDER BY posts.id DESC
+        LIMIT 20
+        
+  `, [userId])
+
+  
+  if (!posts.length) return [];
+
+  return posts;
+}
+
 async function findOne(postId) {
   const promise = await connection.query(`
     SELECT id, "userId" FROM posts WHERE id=$1
@@ -69,6 +88,7 @@ const postsRepository = {
   insert,
   findLatestPost,
   listByHashtag,
+  listByUser,
   findOne,
   deletePost,
   posts
