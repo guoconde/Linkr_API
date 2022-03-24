@@ -1,10 +1,11 @@
 import connection from "../db.js";
 
-async function insert(userId, description, url) {
+async function insert(postData) {
+  const queryArgs = Object.values(postData);
   const promise = await connection.query(`
-    INSERT INTO posts ("userId", description, url) 
-      VALUES ($1, $2, $3);
-  `, [userId, description, url]);
+    INSERT INTO posts ("userId", description, url, "metadataDescription", "metadataImage", "metadataTitle") 
+      VALUES ($1, $2, $3, $4, $5, $6);
+  `, queryArgs);
 
   return promise;
 }
@@ -19,13 +20,15 @@ async function findLatestPost(userId) {
 
 async function posts() {
   const promisse = await connection.query(`
-  SELECT users.id AS "userId", users.name, users.photo, url, description
-    FROM posts
-    JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
-    JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
-    JOIN users ON users.id = posts."userId"
-    ORDER BY posts.id DESC
-    LIMIT 20
+    SELECT u.id AS "userId", u.name, u.photo, p.url, p.description, p."metadataDescription",
+      p."metadataImage", p."metadataTitle"
+    FROM "hashtagsPosts" h
+      JOIN hashtags hg ON hg.id= h."hashtagId"
+      RIGHT JOIN posts p ON p.id = h."postId"
+      JOIN users u ON u.id = p."userId"
+    GROUP BY p.id, u.id
+      ORDER BY p.id DESC
+      LIMIT 20
   `)
 
   return promisse
@@ -49,11 +52,26 @@ async function listByHashtag (hashtag){
   return posts;
 }
 
+async function findOne(postId) {
+  const promise = await connection.query(`
+    SELECT id, "userId" FROM posts WHERE id=$1
+  `, [postId]);
+  
+  return promise;
+}
+
+async function deletePost(postId) {
+  const promise = await connection.query(`DELETE FROM posts WHERE id=$1`, [postId]);
+  return promise;
+}
+
 const postsRepository = {
   insert,
   findLatestPost,
-  posts,
   listByHashtag,
+  findOne,
+  deletePost,
+  posts
 };
 
 export default postsRepository;
