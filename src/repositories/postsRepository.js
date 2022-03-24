@@ -19,13 +19,13 @@ async function findLatestPost(userId) {
 
 async function posts() {
   const promisse = await connection.query(`
-  SELECT users.id AS "userId", users.name, users.photo, url, description
-    FROM posts
-    JOIN hashtagsposts ON hashtagsposts."postId" = posts.id
-    JOIN hashtags ON hashtags.id = hashtagsposts."hashtagId"
-    JOIN users ON users.id = posts."userId"
-    ORDER BY posts.id DESC
-    LIMIT 20
+    SELECT u.id AS "userId", u.name, u.photo, p.url, p.description FROM hashtagsposts h
+      JOIN hashtags hg ON hg.id= h."hashtagId"
+      RIGHT JOIN posts p ON p.id = h."postId"
+      JOIN users u ON u.id = p."userId"
+    GROUP BY p.id, u.id
+      ORDER BY p.id DESC
+      LIMIT 20
   `)
 
   return promisse
