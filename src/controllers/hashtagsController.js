@@ -13,10 +13,6 @@ export async function getHashtags(_req, res) {
       ORDER BY "hashtagCount" DESC
       LIMIT 10
     `);
-    if(!hashtags.rowCount) {
-      res.sendStatus(400);
-      return;
-    }
 
     res.status(200).send(hashtags.rows);
   } catch (error) {
