@@ -34,6 +34,24 @@ async function posts() {
   return promisse
 }
 
+async function listByHashtag (hashtag){
+  const { rows: posts} = await connection.query(`
+      SELECT users.id AS "userId", users.name, users.photo, url, description
+        FROM posts
+        JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
+        JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
+        JOIN users ON users.id = posts."userId"
+        WHERE hashtags.name = $1
+        ORDER BY posts.id DESC
+        LIMIT 20
+        
+  `, [`#${hashtag}`])
+  
+  if (!posts.length) return null;
+
+  return posts;
+}
+
 async function findOne(postId) {
   const promise = await connection.query(`
     SELECT id, "userId" FROM posts WHERE id=$1
@@ -41,6 +59,7 @@ async function findOne(postId) {
   
   return promise;
 }
+
 async function deletePost(postId) {
   const promise = await connection.query(`DELETE FROM posts WHERE id=$1`, [postId]);
   return promise;
@@ -49,8 +68,8 @@ async function deletePost(postId) {
 const postsRepository = {
   insert,
   findLatestPost,
+  listByHashtag,
   findOne,
-  posts,
   deletePost,
   posts
 };
