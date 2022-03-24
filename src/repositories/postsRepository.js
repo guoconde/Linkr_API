@@ -34,7 +34,6 @@ async function posts() {
 const postsRepository = {
   insert,
   findLatestPost,
-  find,
   posts
 };
 
