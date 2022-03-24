@@ -1,10 +1,11 @@
 import connection from "../db.js";
 
-async function insert(userId, description, url) {
+async function insert(postData) {
+  const queryArgs = Object.values(postData);
   const promise = await connection.query(`
-    INSERT INTO posts ("userId", description, url) 
-      VALUES ($1, $2, $3);
-  `, [userId, description, url]);
+    INSERT INTO posts ("userId", description, url, "metadataDescription", "metadataImage", "metadataTitle") 
+      VALUES ($1, $2, $3, $4, $5, $6);
+  `, queryArgs);
 
   return promise;
 }
@@ -19,7 +20,9 @@ async function findLatestPost(userId) {
 
 async function posts() {
   const promisse = await connection.query(`
-    SELECT u.id AS "userId", u.name, u.photo, p.url, p.description FROM hashtagsposts h
+    SELECT u.id AS "userId", u.name, u.photo, p.url, p.description, p."metadataDescription",
+      p."metadataImage", p."metadataTitle"
+    FROM "hashtagsPosts" h
       JOIN hashtags hg ON hg.id= h."hashtagId"
       RIGHT JOIN posts p ON p.id = h."postId"
       JOIN users u ON u.id = p."userId"
@@ -48,7 +51,8 @@ const postsRepository = {
   findLatestPost,
   findOne,
   posts,
-  deletePost
+  deletePost,
+  posts
 };
 
 export default postsRepository;

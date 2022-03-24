@@ -1,5 +1,6 @@
 import connection from "../db.js";
 import postsRepository from "../repositories/postsRepository.js";
+import urlMetadata from "url-metadata";
 import { createHashtags, createRelation } from "../services/hashtagsService.js";
 
 export async function createPost(req, res) {
@@ -7,9 +8,20 @@ export async function createPost(req, res) {
   const { url, description } = req.body;
   
   try {
+    const metadata = await urlMetadata(url);
+
+    const postData = {
+      userId: user.id,
+      description,
+      url,
+      metadataDescription: metadata.description,
+      metadataImage: metadata.image,
+      metadataTitle: metadata.title
+    }
+
     const { hashtagsQuery, hashtagsInPost } = await createHashtags(description);
       
-    await postsRepository.insert(user.id, description, url);
+    await postsRepository.insert(postData);
 
     if (hashtagsInPost.length > 0) {
       createRelation(user.id, hashtagsQuery, hashtagsInPost);
@@ -26,8 +38,7 @@ export async function allPosts(req, res) {
   try {
     const { rows: posts } = await postsRepository.posts()
 
-    res.send(posts)
-
+    res.send(posts);
   } catch (error) {
     res.sendStatus(500);
     console.log(error)
@@ -51,7 +62,7 @@ export async function deletePost(req, res) {
 
     let hashtagsInPost = await connection.query(`
       SELECT h."hashtagId" FROM posts p
-        LEFT JOIN hashtagsposts h ON h."postId"=p.id
+        LEFT JOIN "hashtagsPosts" h ON h."postId"=p.id
       WHERE p.id=$1 AND p."userId"=$2
     `, [postId, user.id]);
 
@@ -62,14 +73,14 @@ export async function deletePost(req, res) {
       const comparisonValues = hashtagsInPost.map((id, index) => `$${index +1}`).join(", ");
   
       let hashtagIsInOtherPosts = await connection.query(`
-        SELECT "hashtagId" from hashtagsposts 
+        SELECT "hashtagId" from "hashtagsPosts" 
           WHERE "postId"!=${postId}
             AND "hashtagId" IN (${comparisonValues}) 
       `, queryArgs);
 
       hashtagIsInOtherPosts = toArrayOfIds(hashtagIsInOtherPosts.rows);
 
-      await connection.query(` DELETE FROM hashtagsposts WHERE "postId"=$1`, [postId]);
+      await connection.query(` DELETE FROM "hashtagsPosts"  WHERE "postId"=$1`, [postId]);
       
       const valuesToDelete = hashtagsInPost.filter(id => !hashtagIsInOtherPosts.includes(id)).join(", ");
       if (valuesToDelete) {
