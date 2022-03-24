@@ -24,6 +24,8 @@ async function posts() {
     JOIN hashtagsposts ON hashtagsposts."postId" = posts.id
     JOIN hashtags ON hashtags.id = hashtagsposts."hashtagId"
     JOIN users ON users.id = posts."userId"
+    ORDER BY posts.id DESC
+    LIMIT 20
   `)
 
   return promisse
