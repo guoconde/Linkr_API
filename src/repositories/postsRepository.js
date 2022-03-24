@@ -36,7 +36,7 @@ async function posts() {
 
 async function listByHashtag (hashtag){
   const { rows: posts} = await connection.query(`
-      SELECT users.id AS "userId", users.name, users.photo, url, description
+    SELECT users.id AS "userId", users.name, users.photo, url, description, "metadataDescription", "metadataImage", "metadataTitle"
         FROM posts
         JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
         JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
@@ -54,7 +54,7 @@ async function listByHashtag (hashtag){
 
 async function listByUser (userId){
   const { rows: posts} = await connection.query(`
-      SELECT users.id AS "userId", users.name, users.photo, url, description
+      SELECT users.id AS "userId", users.name, users.photo, url, description, "metadataDescription", "metadataImage", "metadataTitle"
         FROM posts
         LEFT JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
         LEFT JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
