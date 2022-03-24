@@ -14,10 +14,6 @@ export async function getHashtags(_req, res) {
       LIMIT 10
     `);
 
-    if(!hashtags.rowCount) {
-      return res.sendStatus(204);
-    }
-
     res.status(200).send(hashtags.rows);
   } catch (error) {
     console.log(error);

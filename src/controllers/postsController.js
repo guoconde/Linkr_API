@@ -1,7 +1,10 @@
-import connection from "../db.js";
 import postsRepository from "../repositories/postsRepository.js";
 import urlMetadata from "url-metadata";
 import { createHashtags, createRelation } from "../services/hashtagsService.js";
+import postsService from "../services/postsService.js";
+
+import NotFound from "../errors/NotFoundError.js";
+import Unauthorized from "../errors/UnauthorizedError.js";
 
 export async function createPost(req, res) {
   const { user } = res.locals;
@@ -54,53 +57,17 @@ export async function deletePost(req, res) {
   }
 
   try {
-    await postsRepository.findOne(postId);
+    await postsService.findOne(postId, user.id);
 
-    if(postExist.rowCount === 0) return res.sendStatus(404);
-
-    if (postExist.rows[0].userId !== user.id) return res.sendStatus(401);
-
-    let hashtagsInPost = await connection.query(`
-      SELECT h."hashtagId" FROM posts p
-        LEFT JOIN "hashtagsPosts" h ON h."postId"=p.id
-      WHERE p.id=$1 AND p."userId"=$2
-    `, [postId, user.id]);
-
-    hashtagsInPost = toArrayOfIds(hashtagsInPost.rows);
-
-    if (hashtagsInPost.length > 0){
-      const queryArgs = [...hashtagsInPost];
-      const comparisonValues = hashtagsInPost.map((id, index) => `$${index +1}`).join(", ");
-  
-      let hashtagIsInOtherPosts = await connection.query(`
-        SELECT "hashtagId" from "hashtagsPosts" 
-          WHERE "postId"!=${postId}
-            AND "hashtagId" IN (${comparisonValues}) 
-      `, queryArgs);
-
-      hashtagIsInOtherPosts = toArrayOfIds(hashtagIsInOtherPosts.rows);
-
-      await connection.query(` DELETE FROM "hashtagsPosts"  WHERE "postId"=$1`, [postId]);
-      
-      const valuesToDelete = hashtagsInPost.filter(id => !hashtagIsInOtherPosts.includes(id)).join(", ");
-      if (valuesToDelete) {
-        await connection.query(`DELETE FROM hashtags WHERE id IN ($1)`, [valuesToDelete]);
-      }
-    }   
+    await postsService.deletePostHashtags(postId, user.id);
 
     await postsRepository.deletePost(postId);
 
     res.sendStatus(200);
   } catch (error) {
-    console.log(error)
+    if (error instanceof NotFound || error instanceof Unauthorized)  {
+      return res.status(error.status).send(error.message);
+    }
     res.sendStatus(500);
   }
-}
-
-function toArrayOfIds(arrayObj) {
-  const arrayOfIds = arrayObj.map(obj => {
-    const [id] = Object.values(obj)
-    return id;
-  })
-  return arrayOfIds;
 }
