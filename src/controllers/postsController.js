@@ -23,12 +23,12 @@ export async function createPost(req, res) {
       metadataTitle: metadata.title
     }
 
-    const { hashtagsQuery, hashtagsInPost } = await createHashtags(description);
-      
+    const { insertQuery, allHashtagsInPost } = await createHashtags(description);
+
     await postsRepository.insert(postData);
 
-    if (hashtagsInPost.length > 0) {
-      createRelation(user.id, hashtagsQuery, hashtagsInPost);
+    if (allHashtagsInPost.length > 0) {
+      await createRelation(user.id, insertQuery, allHashtagsInPost);
     }
 
     res.sendStatus(201);

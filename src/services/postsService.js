@@ -17,7 +17,7 @@ async function findOne(postId, userId) {
 
 async function deletePostHashtags(postId, userId) {
   const hashtagsInPost = await hashtagsRepository.findHashtagsInPost(postId, userId);
-
+  
   if (hashtagsInPost.length > 0){
     const hashtagIsInOtherPosts = await hashtagsRepository.findHashtagInOtherPosts(hashtagsInPost, postId);
 
