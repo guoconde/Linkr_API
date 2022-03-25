@@ -21,7 +21,7 @@ async function findLatestPost(userId) {
 async function posts() {
   const promisse = await connection.query(`
     SELECT u.id AS "userId", u.name, u.photo, p.url, p.description, p."metadataDescription",
-      p."metadataImage", p."metadataTitle"
+      p."metadataImage", p."metadataTitle", p.id
     FROM "hashtagsPosts" h
       JOIN hashtags hg ON hg.id= h."hashtagId"
       RIGHT JOIN posts p ON p.id = h."postId"
