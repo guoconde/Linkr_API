@@ -37,15 +37,15 @@ export async function createPost(req, res) {
     console.log(error);
   }
 }
-export async function allPosts(_req, res) {
 
+export async function allPosts(_req, res) {
   try {
     const { rows: posts } = await postsRepository.posts()
 
     res.send(posts);
   } catch (error) {
     res.sendStatus(500);
-    console.log(error)
+    console.log(error);
   }
 }
 
@@ -86,7 +86,7 @@ export async function updatePost(req, res) {
     await connection.query(`
       UPDATE posts 
         SET description=$1 
-      WHERE id=$2 AND "userId"=$2
+      WHERE id=$2 AND "userId"=$3
     `, [post.description, id, user.id]);
 
     res.sendStatus(200);
