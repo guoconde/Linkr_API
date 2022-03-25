@@ -10,6 +10,7 @@ async function getAllLikes(postId) {
 }
 
 async function insertLike(postId, userId, isLiked) {
+
     const promise = await connection.query(`
         INSERT INTO likes
             ("userId", "postId", "isLike") VALUES ($1, $2, $3)
@@ -18,19 +19,19 @@ async function insertLike(postId, userId, isLiked) {
     return promise
 }
 
-async function updateLike(isLike, id) {
+async function deleteLike(postId, userId, isLiked) {
+    
     const promise = await connection.query(`
-        UPDATE likes 
-            SET "isLike" = $1
-            WHERE "postId" = $2
-        `, [isLike, id]);
+        DELETE FROM likes 
+            WHERE "postId" = $1 AND "userId" = $2
+        `, [postId, userId]);
 
     return promise;
 }
 
 const feedRepository = {
     getAllLikes,
-    updateLike,
+    deleteLike,
     insertLike
 };
 

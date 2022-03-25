@@ -47,13 +47,12 @@ export async function getLikes(req, res) {
     }
 }
 
-export async function changeLike(req, res) {
+export async function deleteLike(req, res) {
     const { id } = req.params
-    const { isLiked } = req.body
+    const { isLiked, userId } = req.body
     
     try {
-        console.log('aqui')
-        await feedRepository.updateLike(isLiked, id)
+        await feedRepository.deleteLike(id, userId, isLiked)
         res.sendStatus(200)
     } catch (error) {
         console.log(error);
@@ -66,7 +65,6 @@ export async function newLike(req, res) {
     const { isLiked, userId } = req.body
 
     try {
-        console.log('aqui')
         await feedRepository.insertLike(id, userId, isLiked)
         res.sendStatus(200)
     } catch (error) {
