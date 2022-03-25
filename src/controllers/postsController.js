@@ -5,6 +5,7 @@ import postsService from "../services/postsService.js";
 
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
+import connection from "../db.js";
 
 export async function createPost(req, res) {
   const { user } = res.locals;
@@ -36,7 +37,7 @@ export async function createPost(req, res) {
     console.log(error);
   }
 }
-export async function allPosts(req, res) {
+export async function allPosts(_req, res) {
 
   try {
     const { rows: posts } = await postsRepository.posts()
@@ -68,6 +69,29 @@ export async function deletePost(req, res) {
     if (error instanceof NotFound || error instanceof Unauthorized)  {
       return res.status(error.status).send(error.message);
     }
+    res.sendStatus(500);
+  }
+}
+
+export async function updatePost(req, res) {
+  const { user } = res.locals;
+  const { id } = req.params;
+  const post = req.body;
+  if(!post || !id){
+    res.sendStatus(400);
+    return;
+  }
+
+  try {
+    await connection.query(`
+      UPDATE posts 
+        SET description=$1 
+      WHERE id=$2 AND "userId"=$2
+    `, [post.description, id, user.id]);
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.log(error);
     res.sendStatus(500);
   }
 }
