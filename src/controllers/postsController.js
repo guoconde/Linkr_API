@@ -40,8 +40,9 @@ export async function allPosts(req, res) {
 
   try {
     const { rows: posts } = await postsRepository.posts()
+    const likes = await feedRepository.getAllLikes(id)
 
-    res.send(posts);
+    res.send(posts, likes);
   } catch (error) {
     res.sendStatus(500);
     console.log(error)

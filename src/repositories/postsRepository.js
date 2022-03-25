@@ -21,12 +21,13 @@ async function findLatestPost(userId) {
 async function posts() {
   const promisse = await connection.query(`
     SELECT u.id AS "userId", p.id, u.name, u.photo, p.url, p.description, p."metadataDescription",
-      p."metadataImage", p."metadataTitle"
+      p."metadataImage", p."metadataTitle", l."isLike"
     FROM "hashtagsPosts" h
       JOIN hashtags hg ON hg.id= h."hashtagId"
       RIGHT JOIN posts p ON p.id = h."postId"
       JOIN users u ON u.id = p."userId"
-    GROUP BY p.id, u.id
+      JOIN likes l ON p.id = l."postId"
+    GROUP BY p.id, u.id, l."isLike"
       ORDER BY p.id DESC
       LIMIT 20
   `)
