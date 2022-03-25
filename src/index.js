@@ -10,4 +10,6 @@ app.use(cors());
 app.use(json());
 app.use(router);
 
-app.listen(process.env.PORT, () => { console.log(`Server running on PORT ${process.env.PORT}`)})
+app.listen(process.env.PORT, () => {
+  console.log(`Server running on PORT ${process.env.PORT}`);
+});
