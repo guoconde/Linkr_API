@@ -13,7 +13,7 @@ export async function login(email, password){
         const jwtData = { userId: user.id }
 
         const session = await authRepository.find(user.id)
-        if(session) return {token: session.token, photo: user.photo, userId: user.id}
+        if(session) return {token: session.token, photo: user.photo, userId: user.id }
 
         const token = jwt.sign(jwtData, process.env.JWT_SECRET, jwtConfiguration);
         
