@@ -2,13 +2,14 @@ import postsRepository from "../repositories/postsRepository.js";
 import urlMetadata from "url-metadata";
 import { createHashtags, createRelation } from "../services/hashtagsService.js";
 import postsService from "../services/postsService.js";
+import * as userRepository from "../repositories/userRepository.js"
+import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js";
 
 import { findHashtags } from "../utils/findHashtags.js";
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
+import NoContent from "../errors/NoContentError.js";
 import connection from "../db.js";
-
-import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js";
 
 export async function createPost(req, res) {
   const { user } = res.locals;
@@ -35,32 +36,6 @@ export async function createPost(req, res) {
     }
 
     res.sendStatus(201);
-  } catch (error) {
-    res.sendStatus(500);
-    console.log(error);
-  }
-}
-
-export async function allPosts(req, res) {
-
-  const { user } = res.locals;
-
-  try {
-    const { rows } = await postsRepository.posts(user.id)
-    const { rows: names } = await postsRepository.getNameByLikes()
-
-    const posts = rows.map((el, i) => {
-      const filteredNames = names.filter(post => post.postId === el.id)
-
-      const likeNames = filteredNames.map(element => element.userName )
-
-      let newArr = {...el, likeNames}
-
-      return newArr
-
-    })
-
-    res.send(posts);
   } catch (error) {
     res.sendStatus(500);
     console.log(error);
@@ -313,4 +288,65 @@ export async function updatePost(req, res) {
     console.log(error);
     res.sendStatus(500);
   }
+}
+
+export async function listPosts(req, res) {
+    const { id, hashtag } = req.params
+    const { user } = res.locals;
+
+    try {
+        const posts = await postsService.list(user.id, id, hashtag)
+        const { rows: names } = await postsRepository.getNameByLikes()
+
+        const postsWithLikes = posts.map((el, i) => {
+            const filteredNames = names.filter(post => post.postId === el.id)
+
+            const likeNames = filteredNames.map(element => element.userName )
+
+            let newArr = {...el, likeNames}
+
+            return newArr
+
+        })
+
+        if(id){
+          const user = await userRepository.find('id', id)
+          if(!user) throw new NotFound("User doesn't exists")
+
+          return res.send({name:user.name, posts:postsWithLikes})
+        }
+        
+        res.send(postsWithLikes);
+    } catch (error) {
+        if (error instanceof NoContent || error instanceof NotFound) return res.status(error.status).send(error.message);
+
+        console.log(error);
+        res.status(500).send("Unexpected server error")
+    }
+}
+
+export async function deleteLike(req, res) {
+    const { id } = req.params
+    const { isLiked, userId } = req.body
+    
+    try {
+        await postsRepository.deleteLike(id, userId, isLiked)
+        res.sendStatus(200)
+    } catch (error) {
+        console.log(error);
+        res.status(500).send("Unexpected server error")
+    }
+}
+
+export async function newLike(req, res) {
+    const { id } = req.params
+    const { isLiked, userId } = req.body
+
+    try {
+        await postsRepository.insertLike(id, userId, isLiked)
+        res.sendStatus(200)
+    } catch (error) {
+        console.log(error);
+        res.status(500).send("Unexpected server error")
+    }
 }

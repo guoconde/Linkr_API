@@ -1,9 +1,29 @@
 import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js";
 import { hashtagsRepository } from "../repositories/hashtagsRepository.js";
 import postsRepository from "../repositories/postsRepository.js";
+import * as userRepository from "../repositories/userRepository.js";
 
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
+import NoContent from "../errors/NoContentError.js";
+
+async function list(userId, userSearchedId, hashtagName){
+  let where = ""
+  let queryArgs = [userId]
+
+  if(hashtagName){
+    where = "WHERE hashtags.name = $2"
+    queryArgs.push(`#${hashtagName}`)
+  }else if (userSearchedId){
+    where = "WHERE users.id = $2"
+    queryArgs.push(userSearchedId)
+  }
+  
+  const posts =  await postsRepository.list(where ,queryArgs)
+  if (!posts) throw new NoContent();
+  
+  return posts;
+}
 
 async function findOne(postId, userId) {
   const postExist = await postsRepository.findOne(postId);
@@ -29,6 +49,7 @@ async function deletePostHashtags(postId, userId) {
   return true;
 }
 const postsService = {
+  list,
   findOne,
   deletePostHashtags
 }
