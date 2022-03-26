@@ -3,7 +3,6 @@ import { findHashtags } from "../utils/findHashtags.js";
 import { getNonexistentHashtags } from "../utils/getNonexistentHashtags.js";
 import postsRepository from "../repositories/postsRepository.js";
 import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js"
-import toArrayOfIds from "../utils/toArrayOfIds.js";
 
 export async function createHashtags(description) {
   const filteredHashtagsInPost = findHashtags(description, true);
@@ -33,7 +32,7 @@ export async function createRelation(userId, insertQuery, hashtags) {
   hashtagsInPost = hashtags.map(h => {
     const item = hashtagsInPost.find((obj) => obj.name === h);
     return item.id;
-  })
+  });
   
   const hashtagRelations = hashtagsInPost.map(h => `('${h}', ${post.id})`).join(`, `);
   
