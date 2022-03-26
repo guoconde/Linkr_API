@@ -6,6 +6,7 @@ import postsService from "../services/postsService.js";
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import connection from "../db.js";
+import { find } from "../repositories/userRepository.js";
 
 export async function createPost(req, res) {
   const { user } = res.locals;
@@ -38,9 +39,24 @@ export async function createPost(req, res) {
   }
 }
 
-export async function allPosts(_req, res) {
+export async function allPosts(req, res) {
+
+  const { user } = res.locals;
+
   try {
-    const { rows: posts } = await postsRepository.posts()
+    const { rows } = await postsRepository.posts(user.id)
+    const { rows: names } = await postsRepository.getNameByLikes()
+
+    const posts = rows.map((el, i) => {
+      const filteredNames = names.filter(post => post.postId === el.id)
+
+      const likeNames = filteredNames.map(element => element.userName )
+
+      let newArr = {...el, likeNames}
+
+      return newArr
+
+    })
 
     res.send(posts);
   } catch (error) {

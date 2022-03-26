@@ -1,6 +1,7 @@
 
 import NoContent from "../errors/NoContentError.js";
 import * as feedService from "../services/feedService.js"
+import feedRepository from "../repositories/feedRepository.js";
 
 export async function listHashtagPosts(req, res){
     const { hashtag } = req.params;
@@ -27,6 +28,46 @@ export async function listUserPosts(req, res){
     } catch (error) {
         if (error instanceof NoContent) return res.status(error.status).send(error.message);
 
+        console.log(error);
+        res.status(500).send("Unexpected server error")
+    }
+}
+
+export async function getLikes(req, res) {
+
+    const { id } = req.params
+
+    try {
+        const data = await feedRepository.getAllLikes(id)
+
+        res.send(data)
+    } catch (error) {
+        console.log(error);
+        res.status(500).send("Unexpected server error")
+    }
+}
+
+export async function deleteLike(req, res) {
+    const { id } = req.params
+    const { isLiked, userId } = req.body
+    
+    try {
+        await feedRepository.deleteLike(id, userId, isLiked)
+        res.sendStatus(200)
+    } catch (error) {
+        console.log(error);
+        res.status(500).send("Unexpected server error")
+    }
+}
+
+export async function newLike(req, res) {
+    const { id } = req.params
+    const { isLiked, userId } = req.body
+
+    try {
+        await feedRepository.insertLike(id, userId, isLiked)
+        res.sendStatus(200)
+    } catch (error) {
         console.log(error);
         res.status(500).send("Unexpected server error")
     }
