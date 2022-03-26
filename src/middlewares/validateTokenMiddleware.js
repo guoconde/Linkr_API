@@ -12,24 +12,21 @@ export default async function validateTokenMiddleware(req, res, next) {
     res.sendStatus(401).send("Token is invalid");;
     return;
   }
-
+  
   try {
     const { rows: [session]} = await connection.query(`
       SELECT * FROM sessions WHERE token=$1
     `, [token]);
-    if(!session){
-      res.status(401).send("Session is invalid");
-      return;
-    }
+    if(!session) return res.status(401).send("Session is invalid");
 
-    await jwt.verify(token, secretKey, async (err, decoded) => { 
-      if(err) {
-        await authRepository.remove(session.id)
-        return res.status(401).send("Token expired, please log in again") 
-      }
-
+    try {
+      const decoded = jwt.verify(token, secretKey)
       res.locals.user = { id: decoded.userId }
-    });
+    } catch (error) {
+      await authRepository.remove(session.id)
+      return res.status(401).send("Token expired, please log in again")
+    }
+    
       
     next();
   } catch (error) {

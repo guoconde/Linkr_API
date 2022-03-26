@@ -8,6 +8,8 @@ import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import connection from "../db.js";
 
+import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js";
+
 export async function createPost(req, res) {
   const { user } = res.locals;
   const { url, description } = req.body;
@@ -24,12 +26,12 @@ export async function createPost(req, res) {
       metadataTitle: metadata.title
     }
 
-    const { hashtagsQuery, hashtagsInPost } = await createHashtags(description);
+    const { insertQuery, allHashtagsInPost } = await createHashtags(description);
 
     await postsRepository.insert(postData);
 
-    if (hashtagsInPost.length > 0) {
-      createRelation(user.id, hashtagsQuery, hashtagsInPost);
+    if (allHashtagsInPost.length > 0) {
+      await createRelation(user.id, insertQuery, allHashtagsInPost);
     }
 
     res.sendStatus(201);
@@ -39,9 +41,24 @@ export async function createPost(req, res) {
   }
 }
 
-export async function allPosts(_req, res) {
+export async function allPosts(req, res) {
+
+  const { user } = res.locals;
+
   try {
-    const { rows: posts } = await postsRepository.posts()
+    const { rows } = await postsRepository.posts(user.id)
+    const { rows: names } = await postsRepository.getNameByLikes()
+
+    const posts = rows.map((el, i) => {
+      const filteredNames = names.filter(post => post.postId === el.id)
+
+      const likeNames = filteredNames.map(element => element.userName )
+
+      let newArr = {...el, likeNames}
+
+      return newArr
+
+    })
 
     res.send(posts);
   } catch (error) {
@@ -62,6 +79,8 @@ export async function deletePost(req, res) {
     await postsService.findOne(postId, user.id);
 
     await postsService.deletePostHashtags(postId, user.id);
+
+    await hashtagsPostsRepository.deleteLikesRelation(postId);
 
     await postsRepository.deletePost(postId);
 
