@@ -11,3 +11,14 @@ export async function find(column, value){
 
     return user;
 }
+
+export async function findUsersInput(data) {
+    
+    const { rows: user } = await connection.query(`
+        SELECT name, photo, id
+            FROM users
+            WHERE LOWER(users.name) LIKE LOWER($1)
+    `, [`%${data}%`])
+
+    return user
+}

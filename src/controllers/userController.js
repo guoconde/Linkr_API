@@ -1,5 +1,7 @@
 import connection from "../db.js";
 import bcrypt from 'bcrypt';
+import { findUsersInput } from "../repositories/userRepository.js";
+
 
 export async function register(req, res) {
   const { username, email, password, picture } = req.body;
@@ -30,4 +32,17 @@ export async function register(req, res) {
     console.log(error);
     res.sendStatus(500);
   }
+}
+
+export async function findUsers(req, res) {
+  const { find } = req.query
+
+  try {
+    const data = await findUsersInput([find])
+    
+    res.send(data);
+} catch (error) {
+    console.log(error);
+    res.status(500).send("Unexpected server error")
+}
 }
