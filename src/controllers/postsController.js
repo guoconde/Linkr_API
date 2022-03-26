@@ -6,7 +6,8 @@ import postsService from "../services/postsService.js";
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import connection from "../db.js";
-import { find } from "../repositories/userRepository.js";
+
+import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js";
 
 export async function createPost(req, res) {
   const { user } = res.locals;
@@ -78,10 +79,13 @@ export async function deletePost(req, res) {
 
     await postsService.deletePostHashtags(postId, user.id);
 
+    await hashtagsPostsRepository.deleteLikesRelation(postId);
+
     await postsRepository.deletePost(postId);
 
     res.sendStatus(200);
   } catch (error) {
+    console.log(error);
     if (error instanceof NotFound || error instanceof Unauthorized)  {
       return res.status(error.status).send(error.message);
     }

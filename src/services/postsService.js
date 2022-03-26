@@ -21,7 +21,7 @@ async function deletePostHashtags(postId, userId) {
   if (hashtagsInPost.length > 0){
     const hashtagIsInOtherPosts = await hashtagsRepository.findHashtagInOtherPosts(hashtagsInPost, postId);
 
-    await hashtagsPostsRepository.deleteRelation(postId);
+    await hashtagsPostsRepository.deleteHashtagsRelation(postId);
     
     await hashtagsRepository.deleteMany(hashtagIsInOtherPosts, hashtagsInPost);
   }
