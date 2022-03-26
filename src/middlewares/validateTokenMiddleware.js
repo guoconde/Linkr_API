@@ -12,7 +12,7 @@ export default async function validateTokenMiddleware(req, res, next) {
     res.sendStatus(401).send("Token is invalid");;
     return;
   }
-
+  
   try {
     const { rows: [session]} = await connection.query(`
       SELECT * FROM sessions WHERE token=$1
