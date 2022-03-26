@@ -7,14 +7,22 @@ async function insert(values) {
   `);
 }
 
-async function deleteRelation(postId) {
+async function deleteHashtagsRelation(postId) {
   const promise = await connection.query(` 
     DELETE FROM "hashtagsPosts" WHERE "postId"=$1
   `, [postId]);
   return promise;
 }
 
+async function deleteLikesRelation(postId) {
+  const promise = await connection.query(`
+    DELETE FROM likes WHERE "postId"=$1
+  `, [postId]);
+  return promise;
+}
+
 export const hashtagsPostsRepository = {
   insert,
-  deleteRelation
+  deleteHashtagsRelation,
+  deleteLikesRelation
 };

@@ -5,29 +5,36 @@ import postsRepository from "../repositories/postsRepository.js";
 import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js"
 
 export async function createHashtags(description) {
-  const hashtagsInPost = findHashtags(description);
-  const hashtagsQuery = hashtagsInPost.map((h, index) => `$${index + 1}`).join(", ");
+  const filteredHashtagsInPost = findHashtags(description, true);
+  const hashtagsQuery = filteredHashtagsInPost.map((h, index) => `$${index + 1}`).join(", ");
 
   let result;
   if (hashtagsQuery) {
-    result = await hashtagsRepository.find(hashtagsQuery, hashtagsInPost);
+    result = await hashtagsRepository.find(hashtagsQuery, filteredHashtagsInPost);
   }
 
-  const hashtagsToBeCreated = getNonexistentHashtags(hashtagsInPost, result);
+  const hashtagsToBeCreated = getNonexistentHashtags(filteredHashtagsInPost, result);
 
   if (hashtagsToBeCreated) {
     await hashtagsRepository.insert(hashtagsToBeCreated);
   }
 
-  return { hashtagsQuery, hashtagsInPost }
+  const allHashtagsInPost = findHashtags(description, false);
+  const insertQuery = allHashtagsInPost.map((h, index) => `$${index + 1}`).join(", ");
+
+  return { insertQuery, allHashtagsInPost };
 }
 
-export async function createRelation(userId, params, hashtags) {
+export async function createRelation(userId, insertQuery, hashtags) {
   const { rows: [post] } = await postsRepository.findLatestPost(userId);
-
-  const { rows: hashtagsInPost } = await hashtagsRepository.find(params, hashtags);
-
-  const hashtagRelations = hashtagsInPost.map(h => `('${h.id}', ${post.id})`).join(`, `);
+  let { rows: hashtagsInPost } = await hashtagsRepository.find(insertQuery, hashtags);
+  
+  hashtagsInPost = hashtags.map(h => {
+    const item = hashtagsInPost.find((obj) => obj.name === h);
+    return item.id;
+  });
+  
+  const hashtagRelations = hashtagsInPost.map(h => `('${h}', ${post.id})`).join(`, `);
   
   await hashtagsPostsRepository.insert(hashtagRelations);
 

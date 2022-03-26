@@ -1,5 +1,37 @@
 import connection from "../db.js";
 
+async function list(where, queryArgs) {
+  const { rows: posts } = await connection.query(`
+      SELECT  users.id AS "userId", users.name, users.photo, 
+              posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle", 
+              "usersLikes"."isLike",
+              "postsLikes"."postLikes"
+      FROM posts
+      LEFT JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
+      LEFT JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
+      JOIN users ON users.id = posts."userId"
+      LEFT JOIN(
+          SELECT *, COUNT(*)
+          FROM likes
+          WHERE likes."userId" = $1
+          GROUP BY "postId", likes.id
+      ) AS "usersLikes" ON "usersLikes"."postId" = posts.id
+      LEFT JOIN(
+          SELECT "postId", COUNT(*) AS "postLikes"
+          FROM likes
+          GROUP BY "postId"
+      ) AS "postsLikes" ON "postsLikes"."postId" = posts.id
+      ${where}
+      GROUP BY posts.id, users.id, "usersLikes"."isLike", "postsLikes"."postLikes"
+      ORDER BY posts.id DESC
+      LIMIT 20
+  `, queryArgs)
+  
+  if (!posts.length) return null;
+
+  return posts;
+}
+
 async function insert(postData) {
   const queryArgs = Object.values(postData);
   const promise = await connection.query(`
@@ -18,35 +50,6 @@ async function findLatestPost(userId) {
   return promise;
 }
 
-async function posts(id) {
-  const promisse = await connection.query(`
-      SELECT  users.id AS "userId", users.name, users.photo, 
-      posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle", 
-      "usersLikes"."isLike",
-      "postsLikes"."postLikes"
-      FROM posts
-      LEFT JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
-      LEFT JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
-      JOIN users ON users.id = posts."userId"
-      LEFT JOIN(
-          SELECT *, COUNT(*)
-          FROM likes
-          WHERE likes."userId" = $1
-          GROUP BY "postId", likes.id
-      ) AS "usersLikes" ON "usersLikes"."postId" = posts.id
-      LEFT JOIN(
-          SELECT "postId", COUNT(*) AS "postLikes"
-          FROM likes
-          GROUP BY "postId"
-      ) AS "postsLikes" ON "postsLikes"."postId" = posts.id
-      GROUP BY posts.id, users.id, "usersLikes"."isLike", "postsLikes"."postLikes"
-      ORDER BY posts.id DESC
-      LIMIT 20
-  `, [id])
-
-  return promisse
-}
-
 async function getNameByLikes() {
   const promise = await connection.query(`
   SELECT "postId", name AS "userName"
@@ -56,43 +59,6 @@ async function getNameByLikes() {
   `)
 
   return promise
-}
-
-async function listByHashtag (hashtag){
-  const { rows: posts} = await connection.query(`
-    SELECT users.id AS "userId", users.name, users.photo, url, description, "metadataDescription", "metadataImage", "metadataTitle"
-        FROM posts
-        JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
-        JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
-        JOIN users ON users.id = posts."userId"
-        WHERE hashtags.name = $1
-        ORDER BY posts.id DESC
-        LIMIT 20
-        
-  `, [`#${hashtag}`])
-  
-  if (!posts.length) return null;
-
-  return posts;
-}
-
-async function listByUser (userId){
-  const { rows: posts} = await connection.query(`
-      SELECT users.id AS "userId", users.name, users.photo, url, description, "metadataDescription", "metadataImage", "metadataTitle"
-        FROM posts
-        LEFT JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
-        LEFT JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
-        JOIN users ON users.id = posts."userId"
-        WHERE users.id = $1
-        ORDER BY posts.id DESC
-        LIMIT 20
-        
-  `, [userId])
-
-  
-  if (!posts.length) return [];
-
-  return posts;
 }
 
 async function findOne(postId) {
@@ -108,15 +74,35 @@ async function deletePost(postId) {
   return promise;
 }
 
+async function insertLike(postId, userId, isLiked) {
+
+  const promise = await connection.query(`
+      INSERT INTO likes
+          ("userId", "postId", "isLike") VALUES ($1, $2, $3)
+  `, [userId, postId, isLiked])
+
+  return promise
+}
+
+async function deleteLike(postId, userId, isLiked) {
+  
+  const promise = await connection.query(`
+      DELETE FROM likes 
+          WHERE "postId" = $1 AND "userId" = $2
+      `, [postId, userId]);
+
+  return promise;
+}
+
 const postsRepository = {
+  list,
   insert,
   findLatestPost,
-  listByHashtag,
-  listByUser,
   findOne,
   deletePost,
-  posts,
-  getNameByLikes
+  getNameByLikes,
+  insertLike,
+  deleteLike
 };
 
 export default postsRepository;

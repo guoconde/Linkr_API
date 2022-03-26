@@ -1,10 +1,13 @@
-export function findHashtags(description) {
+export function findHashtags(description, deleteDuplicate) {
   const validateHashtags = /^[#][a-zA-Z0-9]{1,}$/i;
   const hashtagsSent = description
     .split(" ")
     .filter((str) => validateHashtags.test(str));
-  const hashtags = removeDuplicate(hashtagsSent);
-  return hashtags;
+  if (deleteDuplicate) {
+    const hashtags = removeDuplicate(hashtagsSent);
+    return hashtags;
+  }
+  return hashtagsSent;
 }
 
 function removeDuplicate(lst) {
