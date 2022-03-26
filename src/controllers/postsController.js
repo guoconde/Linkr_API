@@ -76,7 +76,6 @@ export async function updatePost(req, res) {
     res.sendStatus(400);
     return;
   }
-  console.log("postId: ", id);
 
   try {
     await connection.query(`
@@ -89,9 +88,6 @@ export async function updatePost(req, res) {
     const originalHashtags = findHashtags(post.originalDescription);
     const currentHashtags = findHashtags(post.description);
 
-    console.log("originalHashtags: ", originalHashtags);
-    console.log("currentHashtags: ", currentHashtags);
-
     const newHashtags = [];
     for (let i = 0; i < currentHashtags.length; i++) {
       const hashtag = currentHashtags[i];
@@ -99,8 +95,6 @@ export async function updatePost(req, res) {
         newHashtags.push(hashtag);
       }
     }
-
-    console.log("newHashtags: ", newHashtags);
 
     const deletedHashtags = [];
     if (!newHashtags.length && originalHashtags.length > currentHashtags.length) {
@@ -112,22 +106,14 @@ export async function updatePost(req, res) {
       }
     }
 
-    console.log("deletedHashtags: ", deletedHashtags);
-    console.log("deletedHashtagsAll: ", deletedHashtags.length === originalHashtags.length);
-
     if (newHashtags.length) {
-      console.log("EDIÇÃO - INSERIR NOVAS HASHTAGS");
-
       const searchNewHashtags = newHashtags.map(h => `name='${h}'`).join(` OR `);
-      console.log("searchNewHashtags: ", searchNewHashtags);
-
       const seachedHastags = await connection.query(`
         SELECT 
           *
         FROM hashtags
           WHERE ${searchNewHashtags}
       `);
-      console.log("seachedHastags: ", seachedHastags.rows);
 
       const newHashtagsNotInserted = [];
       for (let i = 0; i < newHashtags.length; i++) {
@@ -136,7 +122,6 @@ export async function updatePost(req, res) {
           newHashtagsNotInserted.push(hashtag);
         }
       }
-      console.log("newHashtagsNotInserted: ", newHashtagsNotInserted);
 
       if (newHashtagsNotInserted.length > 0) {
         const hashtagNotInserted = newHashtagsNotInserted.map(h => `('${h}')`).join(`, `);
@@ -154,7 +139,6 @@ export async function updatePost(req, res) {
           FROM hashtags
             WHERE ${searchCurrentHashtags}
         `);
-        console.log("seachAllHastags (if): ", searchAllHastags.rows);
 
         await connection.query(`
           DELETE FROM "hashtagsPosts"
@@ -176,7 +160,6 @@ export async function updatePost(req, res) {
           FROM hashtags
             WHERE ${searchCurrentHashtags}
         `);
-        console.log("seachAllHastags (else): ", searchAllHastags.rows);
 
         await connection.query(`
           DELETE FROM "hashtagsPosts"
@@ -192,10 +175,8 @@ export async function updatePost(req, res) {
         `);
       }
     } else if (deletedHashtags.length) {
-      console.log("EDIÇÃO - REMOVER HASHTAGS EXISTENTES NA DESCRIÇÃO");
       if (deletedHashtags.length === originalHashtags.length &&
         originalHashtags.length !== 0) {
-        console.log("VERIFICAÇÂO - Nenhuma hashtag no post");
 
         await connection.query(`
           DELETE FROM "hashtagsPosts"
@@ -209,7 +190,6 @@ export async function updatePost(req, res) {
           FROM hashtags
             WHERE ${searchOriginalHashtags}
         `);
-        console.log("searchAllHastags: ", searchAllHastags.rows);
 
         const searchUsedHashtagsArr = searchAllHastags.rows.map(h => `"hashtagId"='${h.id}'`).join(` OR `);
         const searchUsedHashtags = await connection.query(`
@@ -218,7 +198,6 @@ export async function updatePost(req, res) {
           FROM "hashtagsPosts"
           WHERE ${searchUsedHashtagsArr}
         `);
-        console.log("searchUsedHashtags: ", searchUsedHashtags.rows);
 
         const hashtagsToBeDeleted = [];
         for (let i = 0; i < searchAllHastags.rows.length; i++) {
@@ -227,7 +206,6 @@ export async function updatePost(req, res) {
             hashtagsToBeDeleted.push(hashtag);
           }
         }
-        console.log("hashtagsToBeDeleted: ", hashtagsToBeDeleted);
 
         if(hashtagsToBeDeleted.length){
           const searchToBeDeleteHashtags = hashtagsToBeDeleted.map(h => `id='${h.id}'`).join(` OR `);
@@ -237,8 +215,6 @@ export async function updatePost(req, res) {
           `);
         }
       } else {
-        console.log("VERIFICAÇÃO - Quantidade hashtags difernte de 0");
-
         const searchDeletedHashtagsArr = deletedHashtags.map(h => `name='${h}'`).join(` OR `);
         const searchDeletedHashtags = await connection.query(`
           SELECT 
@@ -246,10 +222,8 @@ export async function updatePost(req, res) {
           FROM hashtags
           WHERE ${searchDeletedHashtagsArr}
         `);
-        console.log("searchDeletedHashtags: ", searchDeletedHashtags.rows);
 
         const searchToBeDeleteHashtagsInPost = searchDeletedHashtags.rows.map(h => `"hashtagId"='${h.id}'`).join(` OR `);
-        console.log("searchToBeDeleteHashtagsInPost: ", searchToBeDeleteHashtagsInPost);
         await connection.query(`
           DELETE FROM "hashtagsPosts"
           WHERE "postId"=$1 AND (${searchToBeDeleteHashtagsInPost}) 
@@ -262,7 +236,6 @@ export async function updatePost(req, res) {
           FROM "hashtagsPosts"
           WHERE ${searchUsedHashtagsArr}
         `);
-        console.log("searchUsedHashtags: ", searchUsedHashtags.rows);
 
         const hashtagsToBeDeleted = [];
         for (let i = 0; i < searchDeletedHashtags.rows.length; i++) {
@@ -271,7 +244,6 @@ export async function updatePost(req, res) {
             hashtagsToBeDeleted.push(hashtag);
           }
         }
-        console.log("hashtagsToBeDeleted: ", hashtagsToBeDeleted);
 
         if(hashtagsToBeDeleted.length){
           const searchToBeDeleteHashtags = hashtagsToBeDeleted.map(h => `id='${h.id}'`).join(` OR `);
@@ -286,7 +258,7 @@ export async function updatePost(req, res) {
     res.sendStatus(200);
   } catch (error) {
     console.log(error);
-    res.sendStatus(500);
+    res.status(500).send("Unexpected server error");
   }
 }
 
