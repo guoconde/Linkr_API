@@ -21,23 +21,41 @@ async function findLatestPost(userId) {
 async function posts(id) {
   const promisse = await connection.query(`
       SELECT  users.id AS "userId", users.name, users.photo, 
-      posts.id,  url, description, "metadataDescription", "metadataImage", "metadataTitle", 
-      "usersLikes"."isLike"
+      posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle", 
+      "usersLikes"."isLike",
+      "postsLikes"."postLikes"
       FROM posts
       LEFT JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
       LEFT JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
       JOIN users ON users.id = posts."userId"
       LEFT JOIN(
-          SELECT *
+          SELECT *, COUNT(*)
           FROM likes
-          WHERE likes."userId" = $1 AND "isLike" = true
+          WHERE likes."userId" = $1
+          GROUP BY "postId", likes.id
       ) AS "usersLikes" ON "usersLikes"."postId" = posts.id
-      GROUP BY posts.id, users.id, "usersLikes"."isLike"
+      LEFT JOIN(
+          SELECT "postId", COUNT(*) AS "postLikes"
+          FROM likes
+          GROUP BY "postId"
+      ) AS "postsLikes" ON "postsLikes"."postId" = posts.id
+      GROUP BY posts.id, users.id, "usersLikes"."isLike", "postsLikes"."postLikes"
       ORDER BY posts.id DESC
       LIMIT 20
   `, [id])
 
   return promisse
+}
+
+async function getNameByLikes() {
+  const promise = await connection.query(`
+  SELECT "postId", name AS "userName"
+  FROM users
+  JOIN likes ON likes."userId" = users.id
+  GROUP BY "postId", name
+  `)
+
+  return promise
 }
 
 async function listByHashtag (hashtag){
@@ -97,7 +115,8 @@ const postsRepository = {
   listByUser,
   findOne,
   deletePost,
-  posts
+  posts,
+  getNameByLikes
 };
 
 export default postsRepository;
