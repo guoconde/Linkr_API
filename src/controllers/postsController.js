@@ -82,9 +82,9 @@ export async function updatePost(req, res) {
     const currentHashtags = findHashtags(post.description);
 
     for (let i = 0; i < currentHashtags.length; i++) {
-      let newHashtag = currentHashtags[i];
-      if (currentHashtags.indexOf(newHashtag) !== -1 &&
-        currentHashtags.indexOf(newHashtag) !== i) {
+      let newHashtagRep = currentHashtags[i];
+      if (currentHashtags.indexOf(newHashtagRep) !== -1 &&
+        currentHashtags.indexOf(newHashtagRep) !== i) {
           res.status(400).send("Unable to edit, repeated hashtags, try again!");
           return;
       }
