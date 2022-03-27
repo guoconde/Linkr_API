@@ -38,6 +38,10 @@ export async function findUsers(req, res) {
   const { find } = req.query
 
   try {
+    if (!find) {
+      return res.send([]);
+    }
+    
     const data = await findUsersInput([find])
     
     res.send(data);

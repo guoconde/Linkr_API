@@ -18,7 +18,7 @@ export async function findUsersInput(data) {
         SELECT name, photo, id
             FROM users
             WHERE LOWER(users.name) LIKE LOWER($1)
-    `, [`%${data}%`])
+    `, [`${data}%`])
 
     return user
 }

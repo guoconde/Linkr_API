@@ -283,6 +283,7 @@ export async function listPosts(req, res) {
 
         if(id){
           const user = await userRepository.find('id', id)
+          
           if(!user) throw new NotFound("User doesn't exists")
 
           return res.send({name:user.name, posts:postsWithLikes})

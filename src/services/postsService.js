@@ -20,7 +20,7 @@ async function list(userId, userSearchedId, hashtagName){
   }
   
   const posts =  await postsRepository.list(where ,queryArgs)
-  if (!posts) throw new NoContent();
+  if (!posts) return [];
   
   return posts;
 }
