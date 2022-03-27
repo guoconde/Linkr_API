@@ -78,15 +78,23 @@ export async function updatePost(req, res) {
   }
 
   try {
+    const originalHashtags = findHashtags(post.originalDescription);
+    const currentHashtags = findHashtags(post.description);
+
+    for (let i = 0; i < currentHashtags.length; i++) {
+      let newHashtag = currentHashtags[i];
+      if (currentHashtags.indexOf(newHashtag) !== -1 &&
+        currentHashtags.indexOf(newHashtag) !== i) {
+          res.status(400).send("Unable to edit, repeated hashtags, try again!");
+          return;
+      }
+    }
+
     await connection.query(`
       UPDATE posts 
         SET description=$1 
       WHERE id=$2 AND "userId"=$3
     `, [post.description, id, user.id]);
-
-    /* Comparar pelo conteúdo da array: */
-    const originalHashtags = findHashtags(post.originalDescription);
-    const currentHashtags = findHashtags(post.description);
 
     const newHashtags = [];
     for (let i = 0; i < currentHashtags.length; i++) {
@@ -207,7 +215,7 @@ export async function updatePost(req, res) {
           }
         }
 
-        if(hashtagsToBeDeleted.length){
+        if (hashtagsToBeDeleted.length) {
           const searchToBeDeleteHashtags = hashtagsToBeDeleted.map(h => `id='${h.id}'`).join(` OR `);
           await connection.query(`
             DELETE FROM hashtags
@@ -245,7 +253,7 @@ export async function updatePost(req, res) {
           }
         }
 
-        if(hashtagsToBeDeleted.length){
+        if (hashtagsToBeDeleted.length) {
           const searchToBeDeleteHashtags = hashtagsToBeDeleted.map(h => `id='${h.id}'`).join(` OR `);
           await connection.query(`
             DELETE FROM hashtags
@@ -263,63 +271,63 @@ export async function updatePost(req, res) {
 }
 
 export async function listPosts(req, res) {
-    const { id, hashtag } = req.params
-    const { user } = res.locals;
+  const { id, hashtag } = req.params
+  const { user } = res.locals;
 
-    try {
-        const posts = await postsService.list(user.id, id, hashtag)
-        const { rows: names } = await postsRepository.getNameByLikes()
+  try {
+    const posts = await postsService.list(user.id, id, hashtag)
+    const { rows: names } = await postsRepository.getNameByLikes()
 
-        const postsWithLikes = posts.map((el, i) => {
-            const filteredNames = names.filter(post => post.postId === el.id)
+    const postsWithLikes = posts.map((el, i) => {
+      const filteredNames = names.filter(post => post.postId === el.id)
 
-            const likeNames = filteredNames.map(element => element.userName )
+      const likeNames = filteredNames.map(element => element.userName)
 
-            let newArr = {...el, likeNames}
+      let newArr = { ...el, likeNames }
 
-            return newArr
+      return newArr
 
-        })
+    })
 
-        if(id){
-          const user = await userRepository.find('id', id)
-          
-          if(!user) throw new NotFound("User doesn't exists")
+    if (id) {
+      const user = await userRepository.find('id', id)
 
-          return res.send({name:user.name, posts:postsWithLikes})
-        }
-        
-        res.send(postsWithLikes);
-    } catch (error) {
-        if (error instanceof NoContent || error instanceof NotFound) return res.status(error.status).send(error.message);
+      if (!user) throw new NotFound("User doesn't exists")
 
-        console.log(error);
-        res.status(500).send("Unexpected server error")
+      return res.send({ name: user.name, posts: postsWithLikes })
     }
+
+    res.send(postsWithLikes);
+  } catch (error) {
+    if (error instanceof NoContent || error instanceof NotFound) return res.status(error.status).send(error.message);
+
+    console.log(error);
+    res.status(500).send("Unexpected server error")
+  }
 }
 
 export async function deleteLike(req, res) {
-    const { id } = req.params
-    const { isLiked, userId } = req.body
-    
-    try {
-        await postsRepository.deleteLike(id, userId, isLiked)
-        res.sendStatus(200)
-    } catch (error) {
-        console.log(error);
-        res.status(500).send("Unexpected server error")
-    }
+  const { id } = req.params
+  const { isLiked, userId } = req.body
+
+  try {
+    await postsRepository.deleteLike(id, userId, isLiked)
+    res.sendStatus(200)
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("Unexpected server error")
+  }
 }
 
 export async function newLike(req, res) {
-    const { id } = req.params
-    const { isLiked, userId } = req.body
+  const { id } = req.params
+  const { isLiked, userId } = req.body
 
-    try {
-        await postsRepository.insertLike(id, userId, isLiked)
-        res.sendStatus(200)
-    } catch (error) {
-        console.log(error);
-        res.status(500).send("Unexpected server error")
-    }
+  try {
+    await postsRepository.insertLike(id, userId, isLiked)
+    res.sendStatus(200)
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("Unexpected server error")
+  }
 }
