@@ -2,7 +2,6 @@ import connection from "../db.js";
 import bcrypt from 'bcrypt';
 import { findUsersInput } from "../repositories/userRepository.js";
 
-
 export async function register(req, res) {
   const { username, email, password, picture } = req.body;
 
@@ -51,7 +50,7 @@ export async function findUsers(req, res) {
   }
 }
 
-export async function getUserById(req, res) {
+export async function findUser(req, res) {
   const { id } = req.params;
   if(!id){
     res.send(400).send("To get the user, it is necessary to pass through query params the id of the same!");
