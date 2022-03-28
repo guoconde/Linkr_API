@@ -26,7 +26,7 @@ export async function createHashtags(description) {
   if (hashtagsToBeCreated) {
     await hashtagsRepository.insert(hashtagsToBeCreated);
   }
-
+  
   return { insertQuery, filteredHashtagsInPost };
 }
 
