@@ -10,6 +10,7 @@ import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import NoContent from "../errors/NoContentError.js";
 import connection from "../db.js";
+import BadRequest from "../errors/badRequest.js";
 
 export async function createPost(req, res) {
   const { user } = res.locals;
@@ -37,6 +38,7 @@ export async function createPost(req, res) {
 
     res.sendStatus(201);
   } catch (error) {
+    if (error instanceof BadRequest) return res.status(error.status).send(error.message);
     res.sendStatus(500);
     console.log(error);
   }
