@@ -292,11 +292,19 @@ export async function listPosts(req, res) {
     })
 
     if (id) {
-      const user = await userRepository.find('id', id)
+      const searchedUser = await userRepository.find('id', id);
+      if (!searchedUser) throw new NotFound("User doesn't exists");
+      let isFollowing = null;
+      if (user.id !== parseInt(id)) {
+        isFollowing = await userRepository.findRelationOfFollow(user.id, searchedUser.id);
+        if (isFollowing.rowCount === 0) {
+          isFollowing = false;
+        } else {
+          isFollowing = true;
+        }
+      }
 
-      if (!user) throw new NotFound("User doesn't exists")
-
-      return res.send({ name: user.name, posts: postsWithLikes })
+      return res.send({ name: searchedUser.name, posts: postsWithLikes, isFollowing });
     }
 
     res.send(postsWithLikes);
