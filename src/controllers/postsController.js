@@ -296,7 +296,7 @@ export async function listPosts(req, res) {
       if (!searchedUser) throw new NotFound("User doesn't exists");
       let isFollowing = null;
       if (user.id !== parseInt(id)) {
-        isFollowing = await userRepository.findRelationOfFollow(user.id, searchedUser.id);
+        isFollowing = await userRepository.findRelationOfFollow(user.id, [searchedUser.id]);
         if (isFollowing.rowCount === 0) {
           isFollowing = false;
         } else {

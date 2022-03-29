@@ -18,14 +18,10 @@ export async function find(column, value) {
 }
 
 export async function findUsersInput(data) {
-  const { rows: user } = await connection.query(
-    `
-        SELECT name, photo, id
-            FROM users
-            WHERE LOWER(users.name) LIKE LOWER($1)
-    `,
-    [`${data}%`]
-  );
+  const { rows: user } = await connection.query(`
+    SELECT name, photo, id FROM users
+      WHERE LOWER (users.name) LIKE LOWER($1)
+  `, [`${data}%`]);
 
   return user;
 }
@@ -46,10 +42,11 @@ export async function follow(followerId, followedId) {
 }
 
 export async function findRelationOfFollow(followerId, followedId) {
+  const query = followedId.map((user, index) => `$${index + 2}`).join(", ");
   const promise = await connection.query(`
-    SELECT id FROM followers 
-      WHERE "followerId"=$1 AND "followedId"=$2
-  `, [followerId, followedId]);
+    SELECT id, "followedId" FROM followers 
+      WHERE "followerId"=$1 AND "followedId" IN (${query})
+  `, [followerId, ...followedId]);
   return promise;
 }
 
