@@ -23,5 +23,5 @@ export async function login(email, password){
         return {token, photo: user.photo, userId: user.id, userName: user.name};
     }
 
-    throw new Unauthorized("Email ou senha inválidos")
+    throw new Unauthorized("The email or password provided is invalid, please try again!")
 }
