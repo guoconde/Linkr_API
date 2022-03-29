@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken"
 
 export async function login(email, password){
     const user = await userRepository.find("email", email)
-    if (!user) throw new Unauthorized("Email ou senha inválidos")
+    if (!user) throw new Unauthorized("The email or password provided is invalid, please try again!")
     
     if (bcrypt.compareSync(password, user.password)) {
         const jwtConfiguration = { expiresIn: '1h'}
