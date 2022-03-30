@@ -20,6 +20,7 @@ export async function createComment(req, res) {
 
 export async function listComments(req, res) {
   const { postId } = req.params;
+  const { id } = res.locals.user;
   if (!postId) {
     res.status(404).send("Post not found!");
   }
@@ -28,14 +29,19 @@ export async function listComments(req, res) {
     const comments = await connection.query(`
       SELECT 
         c.id,
+        c."userId" AS "userId",
+        p."userId" AS "authorId",
+        f."followedId",
         u.name, u.photo,
         c.comment
-      FROM comments AS c
+      FROM posts AS p
+        JOIN comments AS c ON c."postId"=p."id"
         JOIN users AS u ON u.id=c."userId"
-      WHERE c."postId"=$1
+        LEFT JOIN followers AS f ON f."followerId"=$1 AND f."followedId"=c."userId"
+      WHERE c."postId"=$2
       ORDER BY c.id
-    `, [postId]);
-
+    `, [id, postId]);
+    
     res.send(comments.rows);
   } catch (error) {
     console.log(error);
