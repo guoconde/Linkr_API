@@ -80,6 +80,7 @@ export async function deletePost(req, res) {
 
     res.sendStatus(200);
   } catch (error) {
+    console.log(error);
     if (error instanceof NotFound || error instanceof Unauthorized) {
       return res.status(error.status).send(error.message);
     }

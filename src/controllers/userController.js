@@ -1,6 +1,7 @@
 import connection from "../db.js";
 import bcrypt from 'bcrypt';
-import { findUsersInput } from "../repositories/userRepository.js";
+import * as usersRepository from "../repositories/userRepository.js"
+import BadRequest from "../errors/badRequest.js";
 
 export async function register(req, res) {
   const { username, email, password, picture } = req.body;
@@ -34,43 +35,61 @@ export async function register(req, res) {
 }
 
 export async function findUsers(req, res) {
-  const { find } = req.query
+  const { find } = req.query;
+  const { user } = res.locals;
 
   try {
     if (!find) {
       return res.send([]);
     }
+    
+    const data = await usersRepository.findUsersInput([find]);
+   
+    const matchesIds = data.map(user => user.id);
+    
+    const { rows: userIsFollowing } = await usersRepository.findRelationOfFollow(user.id, matchesIds);
 
-    const data = await findUsersInput([find])
+    const result = data.map(user => {
+      const isFollowing = userIsFollowing.find(u => user.id === u.followedId);
+      if (isFollowing) {
+        return {...user, isFollowing: true}
+      } else {
+        return {...user, isFollowing: false}
+      }
+    });
+    
+    result.sort((user1, user2) => {
+      const isEquivalent = user1.isFollowing === user2.isFollowing
+      return (isEquivalent) ? 0 : user1.isFollowing ? -1 : 1;
+    });
 
-    res.send(data);
+    res.send(result);
   } catch (error) {
     console.log(error);
     res.status(500).send("Unexpected server error")
   }
 }
 
-export async function findUser(req, res) {
-  const { id } = req.params;
-  if(!id){
-    res.send(400).send("To get the user, it is necessary to pass through query params the id of the same!");
-    return;
-  }
-
+export async function newFollow(req, res) {
+  const { followedId } = req.body;
+  const { user } = res.locals;
+  
   try {
-    const searchedUser = await connection.query(`
-      SELECT
-        u.photo
-      FROM users AS u
-      WHERE id=$1
-    `, [id]);
-    if(!searchedUser.rowCount){
-      res.send(404).send("Sorry, user not found!");
+    if (isNaN(followedId)) throw new BadRequest;
+
+    const isFollowing = await usersRepository.findRelationOfFollow(user.id, [followedId]);
+
+    if (isFollowing.rowCount > 0){
+      const [data] = isFollowing.rows; 
+      await usersRepository.unfollow(data.id);
+    } else {
+      await usersRepository.follow(user.id, followedId);
     }
-    
-    res.send(searchedUser.rows[0].photo);
+
+    return res.sendStatus(200);   
   } catch (error) {
+    if(error instanceof BadRequest) res.status(error.status).send(error.message);
     console.log(error);
-    res.status(500).send("Unexpected server error");
+    res.sendStatus(500);
   }
 }

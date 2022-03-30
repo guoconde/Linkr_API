@@ -9,16 +9,36 @@ import Unauthorized from "../errors/UnauthorizedError.js";
 async function list(userId, userSearchedId, hashtagName){
   let where = ""
   let queryArgs = [userId]
-
-  if(hashtagName){
-    where = "WHERE hashtags.name = $2"
-    queryArgs.push(`#${hashtagName}`)
-  }else if (userSearchedId){
-    where = "WHERE users.id = $2"
-    queryArgs.push(userSearchedId)
-  }
+  let hashtagRelation = ""
+  let repostsWhere = ""
   
-  const posts =  await postsRepository.list(where ,queryArgs)
+  if(hashtagName){
+    where += "WHERE hashtags.name = $2"
+    repostsWhere= `
+    WHERE  "sharerId" IS NULL
+    `
+    queryArgs.push(`#${hashtagName}`)
+    hashtagRelation = `
+    LEFT JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
+    LEFT JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
+    `
+  } else if (userSearchedId){
+    where += "WHERE users.id = $2"
+    repostsWhere= `
+    WHERE  "sharerId" = $2
+    `
+    queryArgs.push(userSearchedId)
+  } else {
+    repostsWhere= `
+    WHERE  "sharerId" IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
+    `
+    where = `WHERE posts."userId" 
+      IN (SELECT "followedId" FROM followers WHERE "followerId"=$1) OR posts."userId"=$1 
+    `;
+  }
+
+  const posts =  await postsRepository.list(where ,queryArgs, hashtagRelation, repostsWhere)
+  const isFollowingSomeone = await userRepository.findFollowed(userId);
   const { rows: names } = await postsRepository.getNameByLikes()
 
   const postsWithLikes = posts.map((el) => {
@@ -29,13 +49,23 @@ async function list(userId, userSearchedId, hashtagName){
   })
 
   if (userSearchedId) {
-    const user = await userRepository.find('id', userSearchedId)
-    if (!user) throw new NotFound("User doesn't exists")
+    const searchedUser = await userRepository.find('id', userSearchedId)
+    if (!searchedUser) throw new NotFound("User doesn't exists")
 
-    return { name: user.name, posts: postsWithLikes }
+    let isFollowing = null;
+    if (userId !== parseInt(userSearchedId)) {
+      isFollowing = await userRepository.findRelationOfFollow(userId, [userSearchedId]);
+      if (isFollowing.rowCount === 0) {
+        isFollowing = false;
+      } else {
+        isFollowing = true;
+      }
+    }
+
+    return { name: searchedUser.name, posts: postsWithLikes, isFollowing, photo: searchedUser.photo } 
   }
   
-  return postsWithLikes;
+  return {posts: postsWithLikes, isFollowingSomeone};
 }
 
 async function findOne(postId, userId) {
@@ -71,6 +101,7 @@ async function deletePostHashtags(postId, userId) {
 
   return true;
 }
+
 const postsService = {
   list,
   findOne,

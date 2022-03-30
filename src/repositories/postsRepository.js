@@ -1,6 +1,6 @@
 import connection from "../db.js";
 
-async function list(where, queryArgs) {
+async function list(where, queryArgs, hashtagRelation, repostsWhere) {
   const { rows: posts } = await connection.query(`
     SELECT 	users.id AS "userId", users.name, users.photo,
             posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle",
@@ -8,10 +8,11 @@ async function list(where, queryArgs) {
             COALESCE("postsLiked"."postLikes", 0) AS "postLikes",
             COALESCE("postsReposted"."reposts", 0) AS "reposts",
             "userReposts"."postId" AS reposted,
-            reposts.date, "repostsUser"."repostedBy",
+            reposts.date, "sharerName", "sharerId",
             COALESCE("postsCommented"."commentsCount", 0) AS "commentsCount"
     FROM 	reposts 
     JOIN posts ON posts.id = reposts."postId"
+    ${hashtagRelation}
     JOIN users ON users.id = posts."userId"
     LEFT JOIN(
           SELECT "postId", "isLike"
@@ -41,10 +42,11 @@ async function list(where, queryArgs) {
       GROUP BY "postId"
     ) AS "postsCommented" ON "postsCommented"."postId" = posts.id
     JOIN(
-        SELECT users.name AS "repostedBy", reposts.id
+        SELECT users.name AS "sharerName", users.id AS "sharerId", reposts.id
         FROM reposts
         JOIN users ON users.id = reposts."userId"
     ) AS "repostsUser" ON "repostsUser".id = reposts.id
+    ${repostsWhere}
     UNION ALL 
     SELECT  users.id AS "userId", users.name, users.photo, 
             posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle",
@@ -52,9 +54,10 @@ async function list(where, queryArgs) {
             COALESCE("postsLiked"."postLikes", 0) AS "postLikes",
             COALESCE("postsReposted"."reposts", 0) AS "reposts",
             "userReposts"."postId" AS reposted,
-            date , NULL,
+            date , NULL AS "sharerName", NULL AS "sharerId",
             COALESCE("postsCommented"."commentsCount", 0) AS "commentsCount"
     FROM posts
+    ${hashtagRelation}
     JOIN users ON users.id = posts."userId"
     LEFT JOIN(
           SELECT *, COUNT(*)
