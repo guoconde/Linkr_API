@@ -2,7 +2,6 @@ import postsRepository from "../repositories/postsRepository.js";
 import urlMetadata from "url-metadata";
 import { createHashtags, createRelation } from "../services/hashtagsService.js";
 import postsService from "../services/postsService.js";
-import * as userRepository from "../repositories/userRepository.js"
 import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js";
 
 import { findHashtags } from "../utils/findHashtags.js";
@@ -44,6 +43,22 @@ export async function createPost(req, res) {
   }
 }
 
+export async function repost(req, res) {
+  const { user } = res.locals;
+  const { id } = req.params;
+
+  try {
+    const result = await postsService.repost(user.id, id)
+
+    if(result === "deleted") return res.sendStatus(200);
+    res.sendStatus(201)
+  } catch (error) {
+    if (error instanceof BadRequest) return res.status(error.status).send(error.message);
+    res.sendStatus(500);
+    console.log(error);
+  }
+}
+
 export async function deletePost(req, res) {
   const { user } = res.locals;
   let { id: postId } = req.params;
@@ -58,6 +73,8 @@ export async function deletePost(req, res) {
     await postsService.deletePostHashtags(postId, user.id);
 
     await hashtagsPostsRepository.deleteLikesRelation(postId);
+    
+    await postsRepository.deleteRepostsRelation(postId)
 
     await postsRepository.deletePost(postId);
 
@@ -278,38 +295,9 @@ export async function listPosts(req, res) {
   const { user } = res.locals;
 
   try {
-    const posts = await postsService.list(user.id, id, hashtag);
-    const isFollowingSomeone = await userRepository.findFollowed(user.id);
-    const { rows: names } = await postsRepository.getNameByLikes();
+    const posts = await postsService.list(user.id, id, hashtag)
 
-    const postsWithLikes = posts.map((el, i) => {
-      const filteredNames = names.filter(post => post.postId === el.id)
-
-      const likeNames = filteredNames.map(element => element.userName)
-
-      let newArr = { ...el, likeNames }
-
-      return newArr;
-    });
-
-    if (id) {
-      const searchedUser = await userRepository.find('id', id);
-      if (!searchedUser) throw new NotFound("User doesn't exists");
-
-      let isFollowing = null;
-      if (user.id !== parseInt(id)) {
-        isFollowing = await userRepository.findRelationOfFollow(user.id, [searchedUser.id]);
-        if (isFollowing.rowCount === 0) {
-          isFollowing = false;
-        } else {
-          isFollowing = true;
-        }
-      }
-
-      return res.send({ name: searchedUser.name, posts: postsWithLikes, isFollowing, photo: searchedUser.photo });
-    }
-
-    res.send({ posts: postsWithLikes, isFollowingSomeone });
+    res.send(posts);
   } catch (error) {
     if (error instanceof NoContent || error instanceof NotFound) return res.status(error.status).send(error.message);
 
