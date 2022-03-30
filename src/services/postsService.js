@@ -8,13 +8,17 @@ import Unauthorized from "../errors/UnauthorizedError.js";
 async function list(userId, userSearchedId, hashtagName){
   let where = ""
   let queryArgs = [userId]
-
+  
   if(hashtagName){
-    where = "WHERE hashtags.name = $2"
+    where += "WHERE hashtags.name = $2"
     queryArgs.push(`#${hashtagName}`)
-  }else if (userSearchedId){
-    where = "WHERE users.id = $2"
+  } else if (userSearchedId){
+    where += "WHERE users.id = $2"
     queryArgs.push(userSearchedId)
+  } else {
+    where = `WHERE posts."userId" 
+      IN (SELECT "followedId" FROM followers WHERE "followerId"=$1) OR posts."userId"=$1
+    `;
   }
   
   const posts =  await postsRepository.list(where ,queryArgs)
@@ -46,6 +50,7 @@ async function deletePostHashtags(postId, userId) {
 
   return true;
 }
+
 const postsService = {
   list,
   findOne,

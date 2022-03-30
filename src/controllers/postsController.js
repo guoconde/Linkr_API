@@ -63,6 +63,7 @@ export async function deletePost(req, res) {
 
     res.sendStatus(200);
   } catch (error) {
+    console.log(error);
     if (error instanceof NotFound || error instanceof Unauthorized) {
       return res.status(error.status).send(error.message);
     }
@@ -277,8 +278,9 @@ export async function listPosts(req, res) {
   const { user } = res.locals;
 
   try {
-    const posts = await postsService.list(user.id, id, hashtag)
-    const { rows: names } = await postsRepository.getNameByLikes()
+    const posts = await postsService.list(user.id, id, hashtag);
+    const isFollowingSomeone = await userRepository.findFollowed(user.id);
+    const { rows: names } = await postsRepository.getNameByLikes();
 
     const postsWithLikes = posts.map((el, i) => {
       const filteredNames = names.filter(post => post.postId === el.id)
@@ -287,13 +289,13 @@ export async function listPosts(req, res) {
 
       let newArr = { ...el, likeNames }
 
-      return newArr
-
-    })
+      return newArr;
+    });
 
     if (id) {
       const searchedUser = await userRepository.find('id', id);
       if (!searchedUser) throw new NotFound("User doesn't exists");
+
       let isFollowing = null;
       if (user.id !== parseInt(id)) {
         isFollowing = await userRepository.findRelationOfFollow(user.id, [searchedUser.id]);
@@ -304,10 +306,10 @@ export async function listPosts(req, res) {
         }
       }
 
-      return res.send({ name: searchedUser.name, posts: postsWithLikes, isFollowing });
+      return res.send({ name: searchedUser.name, posts: postsWithLikes, isFollowing, photo: searchedUser.photo });
     }
 
-    res.send(postsWithLikes);
+    res.send({ posts: postsWithLikes, isFollowingSomeone });
   } catch (error) {
     if (error instanceof NoContent || error instanceof NotFound) return res.status(error.status).send(error.message);
 

@@ -70,31 +70,6 @@ export async function findUsers(req, res) {
   }
 }
 
-export async function findUser(req, res) {
-  const { id } = req.params;
-  if(!id){
-    res.send(400).send("To get the user, it is necessary to pass through query params the id of the same!");
-    return;
-  }
-
-  try {
-    const searchedUser = await connection.query(`
-      SELECT
-        u.photo
-      FROM users AS u
-      WHERE id=$1
-    `, [id]);
-    if(!searchedUser.rowCount){
-      res.send(404).send("Sorry, user not found!");
-    }
-    
-    res.send(searchedUser.rows[0].photo);
-  } catch (error) {
-    console.log(error);
-    res.status(500).send("Unexpected server error");
-  }
-}
-
 export async function newFollow(req, res) {
   const { followedId } = req.body;
   const { user } = res.locals;

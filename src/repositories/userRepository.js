@@ -50,3 +50,12 @@ export async function findRelationOfFollow(followerId, followedId) {
   return promise;
 }
 
+export async function findFollowed(userId) {
+  const isFollowingSomeone = await connection.query(`SELECT id FROM followers WHERE "followerId"=$1`, [userId]);
+
+  if (isFollowingSomeone.rowCount > 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
