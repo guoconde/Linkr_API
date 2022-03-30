@@ -24,7 +24,6 @@ async function list(where, queryArgs) {
       ${where}
       GROUP BY posts.id, users.id, "usersLikes"."isLike", "postsLikes"."postLikes"
       ORDER BY posts.id DESC
-      LIMIT 20
   `, queryArgs)
   
   if (!posts.length) return null;
