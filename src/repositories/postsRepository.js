@@ -1,94 +1,97 @@
 import connection from "../db.js";
 
-async function list(where, queryArgs) {
+async function list(where, queryArgs, hashtagRelation, repostsWhere) {
   const { rows: posts } = await connection.query(`
-    SELECT  users.id AS "userId", users.name, users.photo,
+    SELECT 	users.id AS "userId", users.name, users.photo,
             posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle",
             COALESCE("userLikes"."isLike", false) AS "isLike",
             COALESCE("postsLiked"."postLikes", 0) AS "postLikes",
             COALESCE("postsReposted"."reposts", 0) AS "reposts",
             "userReposts"."postId" AS reposted,
-            reposts.date, "repostsUser"."repostedBy",
+            reposts.date, "sharerName", "sharerId",
             COALESCE("postsCommented"."commentsCount", 0) AS "commentsCount"
-    FROM reposts 
-      LEFT JOIN posts ON posts.id = reposts."postId"
-      LEFT JOIN users ON users.id = posts."userId"
-    LEFT JOIN(
-        SELECT "postId", "isLike"
-        FROM likes
-        WHERE likes."userId" = $1
-        GROUP BY "postId", likes.id
-    ) AS "userLikes" ON "userLikes"."postId" = posts.id
-    LEFT JOIN(
-        SELECT "postId", COUNT(*) AS "postLikes"
-        FROM likes
-        GROUP BY "postId"
-    ) AS "postsLiked" ON "postsLiked"."postId" = posts.id
-    JOIN(
-      SELECT "postId", COUNT(*) AS "reposts"
-      FROM reposts
-      GROUP BY "postId"
-    ) AS "postsReposted" ON "postsReposted"."postId" = posts.id
-    LEFT JOIN(
-      SELECT "postId", COUNT(*) AS "commentsCount"
-      FROM comments
-      GROUP BY "postId"
-    ) AS "postsCommented" ON "postsCommented"."postId" = posts.id
-    LEFT JOIN(
-      SELECT "postId"
-      FROM reposts
-      WHERE reposts."userId" = $1
-      GROUP BY "postId", reposts.id
-    ) AS "userReposts" ON "userReposts"."postId" = posts.id
-    JOIN(
-      SELECT users.name AS "repostedBy", reposts.id
-      FROM reposts
-      JOIN users ON users.id = reposts."userId"
-    ) AS "repostsUser" ON "repostsUser".id = reposts.id
-    UNION ALL 
-    SELECT  users.id AS "userId", users.name, users.photo, 
-          posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle",
-          COALESCE("userLikes"."isLike", false) AS "isLike",
-          COALESCE("postsLiked"."postLikes", 0) AS "postLikes",
-          COALESCE("postsReposted"."reposts", 0) AS "reposts",
-          "userReposts"."postId" AS reposted,
-          date , NULL,
-          COALESCE("postsCommented"."commentsCount", 0) AS "commentsCount"
-    FROM posts
+    FROM 	reposts 
+    JOIN posts ON posts.id = reposts."postId"
+    ${hashtagRelation}
     JOIN users ON users.id = posts."userId"
     LEFT JOIN(
-        SELECT *, COUNT(*)
-        FROM likes
-        WHERE likes."userId" = $1
-        GROUP BY "postId", likes.id
+          SELECT "postId", "isLike"
+          FROM likes
+          WHERE likes."userId" = $1
+          GROUP BY "postId", likes.id
     ) AS "userLikes" ON "userLikes"."postId" = posts.id
     LEFT JOIN(
-        SELECT "postId", COUNT(*) AS "postLikes"
-        FROM likes
-        GROUP BY "postId"
-    ) AS "postsLiked" ON "postsLiked"."postId" = posts.id
+          SELECT "postId"
+          FROM reposts
+          WHERE reposts."userId" = $1
+          GROUP BY "postId", reposts.id
+    ) AS "userReposts" ON "userReposts"."postId" = posts.id
     LEFT JOIN(
-      SELECT "postId", COUNT(*) AS "reposts"
-      FROM reposts
-      GROUP BY "postId"
+          SELECT "postId", COUNT(*) AS "postLikes"
+          FROM likes
+          GROUP BY "postId"
+    ) AS "postsLiked" ON "postsLiked"."postId" = posts.id
+    JOIN(
+        SELECT "postId", COUNT(*) AS "reposts"
+        FROM reposts
+        GROUP BY "postId"
     ) AS "postsReposted" ON "postsReposted"."postId" = posts.id
     LEFT JOIN(
       SELECT "postId", COUNT(*) AS "commentsCount"
       FROM comments
       GROUP BY "postId"
     ) AS "postsCommented" ON "postsCommented"."postId" = posts.id
+    JOIN(
+        SELECT users.name AS "sharerName", users.id AS "sharerId", reposts.id
+        FROM reposts
+        JOIN users ON users.id = reposts."userId"
+    ) AS "repostsUser" ON "repostsUser".id = reposts.id
+    ${repostsWhere}
+    UNION ALL 
+    SELECT  users.id AS "userId", users.name, users.photo, 
+            posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle",
+            COALESCE("userLikes"."isLike", false) AS "isLike",
+            COALESCE("postsLiked"."postLikes", 0) AS "postLikes",
+            COALESCE("postsReposted"."reposts", 0) AS "reposts",
+            "userReposts"."postId" AS reposted,
+            date , NULL AS "sharerName", NULL AS "sharerId",
+            COALESCE("postsCommented"."commentsCount", 0) AS "commentsCount"
+    FROM posts
+    ${hashtagRelation}
+    JOIN users ON users.id = posts."userId"
     LEFT JOIN(
-      SELECT "postId"
-      FROM reposts
-      WHERE reposts."userId" = $1
-      GROUP BY "postId", reposts.id
+          SELECT *, COUNT(*)
+          FROM likes
+          WHERE likes."userId" = $1
+          GROUP BY "postId", likes.id
+    ) AS "userLikes" ON "userLikes"."postId" = posts.id
+    LEFT JOIN(
+        SELECT "postId"
+        FROM reposts
+        WHERE reposts."userId" = $1
+        GROUP BY "postId", reposts.id
     ) AS "userReposts" ON "userReposts"."postId" = posts.id
+    LEFT JOIN(
+          SELECT "postId", COUNT(*) AS "postLikes"
+          FROM likes
+          GROUP BY "postId"
+    ) AS "postsLiked" ON "postsLiked"."postId" = posts.id
+    LEFT JOIN(
+      SELECT "postId", COUNT(*) AS "commentsCount"
+      FROM comments
+      GROUP BY "postId"
+    ) AS "postsCommented" ON "postsCommented"."postId" = posts.id
+    LEFT JOIN(
+        SELECT "postId", COUNT(*) AS "reposts"
+        FROM reposts
+        GROUP BY "postId"
+    ) AS "postsReposted" ON "postsReposted"."postId" = posts.id
     ${where}
     ORDER BY date DESC
     LIMIT 20
   `, queryArgs)
 
-  if (!posts.length) return null;
+  if (!posts.length) return [];
 
   return posts;
 }
@@ -136,7 +139,7 @@ async function deletePost(postId) {
 }
 
 async function deleteComments(postId) {
-  const promise = await connection.query(`DELETE FROM comments WHERE id=$1`, [postId]);
+  const promise = await connection.query(`DELETE FROM comments WHERE "postId"=$1`, [postId]);
   return promise;
 }
 
@@ -150,8 +153,7 @@ async function insertLike(postId, userId, isLiked) {
   return promise
 }
 
-async function deleteLike(postId, userId, isLiked) {
-
+async function deleteLike(postId, userId) {
   const promise = await connection.query(`
       DELETE FROM likes 
           WHERE "postId" = $1 AND "userId" = $2
@@ -159,6 +161,42 @@ async function deleteLike(postId, userId, isLiked) {
 
   return promise;
 }
+
+async function createRepost(userId, postId) {
+  const result = await connection.query(`
+    INSERT INTO reposts ("userId", "postId") 
+         VALUES ($1, $2)
+    `, [userId, postId]);
+
+  if (!result.rowCount) return false;
+
+  return true;
+}
+
+async function deleteRepost(userId, postId) {
+  const result = await connection.query(`
+    DELETE 
+      FROM reposts 
+     WHERE "userId" = $1 AND "postId" = $2
+    `, [userId, postId]);
+
+  if (!result.rowCount) return false;
+
+  return true;
+}
+
+async function deleteRepostsRelation(postId) {
+  const result = await connection.query(`
+    DELETE 
+      FROM reposts 
+     WHERE "postId" = $1
+    `, [postId]);
+
+  if (!result.rowCount) return false;
+
+  return true;
+}
+
 
 const postsRepository = {
   list,
@@ -169,7 +207,10 @@ const postsRepository = {
   deleteComments,
   getNameByLikes,
   insertLike,
-  deleteLike
+  deleteLike,
+  createRepost,
+  deleteRepost,
+  deleteRepostsRelation
 };
 
 export default postsRepository;
