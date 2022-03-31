@@ -295,9 +295,10 @@ export async function updatePost(req, res) {
 export async function listPosts(req, res) {
   const { id, hashtag } = req.params
   const { user } = res.locals;
+  const { offset } = req.query
 
   try {
-    const posts = await postsService.list(user.id, id, hashtag)
+    const posts = await postsService.list(user.id, id, hashtag, offset)
 
     res.send(posts);
   } catch (error) {
