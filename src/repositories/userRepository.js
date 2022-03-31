@@ -17,13 +17,26 @@ export async function find(column, value) {
   return user;
 }
 
+export async function insert(username, email, passwordHashed, picture){
+  const result = await connection.query(`
+      INSERT INTO users 
+        (name, email, password, photo)
+      VALUES
+        ($1, $2, $3, $4)
+  `, [username, email, passwordHashed, picture]);
+
+  if(result.rowCount === 0) return false
+
+  return true
+}
+
 export async function findUsersInput(data) {
-  const { rows: user } = await connection.query(`
+  const { rows: users } = await connection.query(`
     SELECT name, photo, id FROM users
       WHERE LOWER (users.name) LIKE LOWER($1)
   `, [`${data}%`]);
 
-  return user;
+  return users;
 }
 
 export async function unfollow(id) {

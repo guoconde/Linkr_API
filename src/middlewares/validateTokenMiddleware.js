@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import dotenv from "dotenv";
 import connection from '../db.js'
-import * as authRepository from "../repositories/authRepository.js"
+import * as sessionRepository from "../repositories/sessionRepository.js"
 dotenv.config();
 
 export default async function validateTokenMiddleware(req, res, next) {
@@ -14,16 +14,14 @@ export default async function validateTokenMiddleware(req, res, next) {
   }
   
   try {
-    const { rows: [session]} = await connection.query(`
-      SELECT * FROM sessions WHERE token=$1
-    `, [token]);
+    const session = await sessionRepository.find('"token"', token)
     if(!session) return res.status(401).send("Session is invalid");
 
     try {
       const decoded = jwt.verify(token, secretKey)
       res.locals.user = { id: decoded.userId }
     } catch (error) {
-      await authRepository.remove(session.id)
+      await sessionRepository.remove(session.id)
       return res.status(401).send("Token expired, please log in again")
     }
     

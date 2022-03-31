@@ -11,16 +11,16 @@ export async function insert (token, userId){
     return true;
 }
 
-export async function find (userId){
-    const { rows: [token] } = await connection.query(`
+export async function find (column, value){
+    const { rows: [session] } = await connection.query(`
         SELECT * 
           FROM sessions 
-         WHERE sessions."userId"=$1
-    `, [userId])
-    
-    if (!token) return null;
+         WHERE ${column}=$1
+    `, [value])
 
-    return token;
+    if (!session) return null;
+
+    return session;
 }
 
 export async function remove (sesionId){

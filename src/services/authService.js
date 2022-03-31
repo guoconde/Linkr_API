@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import Unauthorized from '../errors/UnauthorizedError.js';
 import * as userRepository from "../repositories/userRepository.js"
-import * as authRepository from "../repositories/authRepository.js"
+import * as sessionRepository from "../repositories/sessionRepository.js"
 import jwt from "jsonwebtoken"
 
 export async function login(email, password){
@@ -12,12 +12,12 @@ export async function login(email, password){
         const jwtConfiguration = { expiresIn: '1h'}
         const jwtData = { userId: user.id }
 
-        const session = await authRepository.find(user.id)
+        const session = await sessionRepository.find('"userId"', user.id)
         if(session) return {token: session.token, photo: user.photo, userId: user.id, userName: user.name }
 
         const token = jwt.sign(jwtData, process.env.JWT_SECRET, jwtConfiguration);
         
-        const result = await authRepository.insert(token, user.id)
+        const result = await sessionRepository.insert(token, user.id)
         if (!result) throw new Error();
 
         return {token, photo: user.photo, userId: user.id, userName: user.name};
