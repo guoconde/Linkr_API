@@ -1,6 +1,6 @@
 import connection from "../db.js";
 
-async function list(where, queryArgs, hashtagRelation, repostsWhere, offset) {
+async function list(where, queryArgs, hashtagRelation, repostsWhere, limit) {
   const { rows: posts } = await connection.query(`
     SELECT 	users.id AS "userId", users.name, users.photo,
             posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle",
@@ -88,7 +88,7 @@ async function list(where, queryArgs, hashtagRelation, repostsWhere, offset) {
     ) AS "postsReposted" ON "postsReposted"."postId" = posts.id
     ${where}
     ORDER BY date DESC
-    LIMIT ${offset}
+    LIMIT ${limit}
   `, queryArgs)
 
   if (!posts.length) return [];
@@ -129,12 +129,27 @@ async function deletePost(postId) {
   return promise;
 }
 
+async function getCountPosts(userId) {
+  const promise = await connection.query(`
+  SELECT COUNT(id) 
+  FROM posts
+  WHERE posts."userId" 
+  IN (SELECT "followedId" FROM followers WHERE "followerId"=$1) OR posts."userId"=$1
+  UNION ALL 
+  SELECT COUNT(id) 
+  FROM reposts
+  WHERE  reposts."userId" IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
+  `, [userId]);
+  return promise;
+}
+
 const postsRepository = {
   list,
   insert,
   findLatestPost,
   findOne,
-  deletePost
+  deletePost,
+  getCountPosts
 };
 
 export default postsRepository;

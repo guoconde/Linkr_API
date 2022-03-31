@@ -11,7 +11,7 @@ import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import BadRequest from "../errors/badRequest.js";
 
-export async function list(userId, userSearchedId, hashtagName, offset){
+export async function list(userId, userSearchedId, hashtagName, limit){
   let where = ""
   let queryArgs = [userId]
   let hashtagRelation = ""
@@ -42,7 +42,8 @@ export async function list(userId, userSearchedId, hashtagName, offset){
     `;
   }
 
-  const posts =  await postsRepository.list(where ,queryArgs, hashtagRelation, repostsWhere, offset)
+  const totalPosts = await postsRepository.getCountPosts(userId)
+  const posts =  await postsRepository.list(where ,queryArgs, hashtagRelation, repostsWhere, limit)
   const isFollowingSomeone = await userRepository.findFollowed(userId);
   const { rows: names } = await likeRepository.getNameByLikes()
 
@@ -70,7 +71,9 @@ export async function list(userId, userSearchedId, hashtagName, offset){
     return { name: searchedUser.name, posts: postsWithLikes, isFollowing, photo: searchedUser.photo } 
   }
   
-  return {posts: postsWithLikes, isFollowingSomeone};
+  const getCountPosts = parseInt(totalPosts.rows[0].count) + parseInt(totalPosts.rows[1].count)
+
+  return {posts: postsWithLikes, isFollowingSomeone, getCountPosts};
 }
 
 export async function findOne(postId, userId) {

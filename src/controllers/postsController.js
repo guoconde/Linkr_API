@@ -263,11 +263,11 @@ export async function updatePost(req, res) {
 export async function listPosts(req, res) {
   const { id, hashtag } = req.params
   const { user } = res.locals;
-  const { offset } = req.query;
+  const { limit } = req.query;
   
   try {
-    const posts = await postsService.list(user.id, id, hashtag, offset)
-
+    const posts = await postsService.list(user.id, id, hashtag, limit)
+    
     res.send(posts);
   } catch (error) {
     if (error instanceof NoContent || error instanceof NotFound) return res.status(error.status).send(error.message);
