@@ -6,7 +6,7 @@ import * as userRepository from "../repositories/userRepository.js"
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 
-async function list(userId, userSearchedId, hashtagName){
+async function list(userId, userSearchedId, hashtagName, offset){
   let where = ""
   let queryArgs = [userId]
   let hashtagRelation = ""
@@ -37,7 +37,7 @@ async function list(userId, userSearchedId, hashtagName){
     `;
   }
 
-  const posts =  await postsRepository.list(where ,queryArgs, hashtagRelation, repostsWhere)
+  const posts =  await postsRepository.list(where ,queryArgs, hashtagRelation, repostsWhere, offset)
   const isFollowingSomeone = await userRepository.findFollowed(userId);
   const { rows: names } = await postsRepository.getNameByLikes()
 

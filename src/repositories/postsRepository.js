@@ -1,6 +1,6 @@
 import connection from "../db.js";
 
-async function list(where, queryArgs, hashtagRelation, repostsWhere) {
+async function list(where, queryArgs, hashtagRelation, repostsWhere, offset) {
   const { rows: posts } = await connection.query(`
     SELECT 	users.id AS "userId", users.name, users.photo,
             posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle",
@@ -88,7 +88,7 @@ async function list(where, queryArgs, hashtagRelation, repostsWhere) {
     ) AS "postsReposted" ON "postsReposted"."postId" = posts.id
     ${where}
     ORDER BY date DESC
-    LIMIT 20
+    LIMIT ${offset}
   `, queryArgs)
   
   if (!posts.length) return null;
