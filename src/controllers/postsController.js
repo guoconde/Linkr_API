@@ -76,6 +76,8 @@ export async function deletePost(req, res) {
     
     await postsRepository.deleteRepostsRelation(postId)
 
+    await postsRepository.deleteComments(postId);
+
     await postsRepository.deletePost(postId);
 
     res.sendStatus(200);
@@ -293,8 +295,8 @@ export async function updatePost(req, res) {
 export async function listPosts(req, res) {
   const { id, hashtag } = req.params
   const { user } = res.locals;
-  const { offset } = req.query
-
+  const { offset } = req.query;
+  
   try {
     const posts = await postsService.list(user.id, id, hashtag, offset)
 

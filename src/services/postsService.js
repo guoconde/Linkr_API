@@ -10,7 +10,7 @@ async function list(userId, userSearchedId, hashtagName, offset){
   let where = ""
   let queryArgs = [userId]
   let hashtagRelation = ""
-  let repostsWhere = ""
+  let repostsWhere = "";
   
   if(hashtagName){
     where += "WHERE hashtags.name = $2"

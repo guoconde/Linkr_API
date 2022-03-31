@@ -90,8 +90,8 @@ async function list(where, queryArgs, hashtagRelation, repostsWhere, offset) {
     ORDER BY date DESC
     LIMIT ${offset}
   `, queryArgs)
-  
-  if (!posts.length) return null;
+
+  if (!posts.length) return [];
 
   return posts;
 }
@@ -107,7 +107,7 @@ async function insert(postData) {
 }
 
 async function findLatestPost(userId) {
-  const promise = await connection.query (`
+  const promise = await connection.query(`
     SELECT * FROM posts WHERE "userId"=$1 ORDER BY id DESC LIMIT 1
   `, [userId]);;
 
@@ -129,12 +129,17 @@ async function findOne(postId) {
   const promise = await connection.query(`
     SELECT id, "userId" FROM posts WHERE id=$1
   `, [postId]);
-  
+
   return promise;
 }
 
 async function deletePost(postId) {
   const promise = await connection.query(`DELETE FROM posts WHERE id=$1`, [postId]);
+  return promise;
+}
+
+async function deleteComments(postId) {
+  const promise = await connection.query(`DELETE FROM comments WHERE "postId"=$1`, [postId]);
   return promise;
 }
 
@@ -149,7 +154,6 @@ async function insertLike(postId, userId, isLiked) {
 }
 
 async function deleteLike(postId, userId) {
-  
   const promise = await connection.query(`
       DELETE FROM likes 
           WHERE "postId" = $1 AND "userId" = $2
@@ -200,6 +204,7 @@ const postsRepository = {
   findLatestPost,
   findOne,
   deletePost,
+  deleteComments,
   getNameByLikes,
   insertLike,
   deleteLike,
