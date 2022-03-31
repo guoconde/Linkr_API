@@ -1,12 +1,17 @@
-import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js";
-import { hashtagsRepository } from "../repositories/hashtagsRepository.js";
 import postsRepository from "../repositories/postsRepository.js";
 import * as userRepository from "../repositories/userRepository.js"
+import * as repostRepository from "../repositories/repostsRepository.js"
+
+import urlMetadata from "url-metadata";
+import * as hashtagService from "../services/hashtagsService.js";
+import * as likeRepository from "../repositories/likeRepository.js";
+import * as commentsRepository from "../repositories/commentsRepository.js";
 
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
+import BadRequest from "../errors/badRequest.js";
 
-async function list(userId, userSearchedId, hashtagName, offset){
+export async function list(userId, userSearchedId, hashtagName, offset){
   let where = ""
   let queryArgs = [userId]
   let hashtagRelation = ""
@@ -39,7 +44,7 @@ async function list(userId, userSearchedId, hashtagName, offset){
 
   const posts =  await postsRepository.list(where ,queryArgs, hashtagRelation, repostsWhere, offset)
   const isFollowingSomeone = await userRepository.findFollowed(userId);
-  const { rows: names } = await postsRepository.getNameByLikes()
+  const { rows: names } = await likeRepository.getNameByLikes()
 
   const postsWithLikes = posts.map((el) => {
     const filteredNames = names.filter(post => post.postId === el.id)
@@ -68,7 +73,7 @@ async function list(userId, userSearchedId, hashtagName, offset){
   return {posts: postsWithLikes, isFollowingSomeone};
 }
 
-async function findOne(postId, userId) {
+export async function findOne(postId, userId) {
   const postExist = await postsRepository.findOne(postId);
 
   if(postExist.rowCount === 0) throw new NotFound(`Post doesn't exist`);
@@ -78,35 +83,51 @@ async function findOne(postId, userId) {
   return true;
 }
 
-async function repost(userId, postId) {
-  const deleted = await postsRepository.deleteRepost(userId, postId);
+export async function repost(userId, postId) {
+  const deleted = await repostRepository.deleteRepost(userId, postId);
   if (deleted) return "deleted"
   
-  const result = await postsRepository.createRepost(userId, postId);
+  const result = await repostRepository.createRepost(userId, postId);
   if (!result) throw new Error();
 
   return "created";
 }
 
-async function deletePostHashtags(postId, userId) {
-  const hashtagsInPost = await hashtagsRepository.findHashtagsInPost(postId, userId);
-  
-  if (hashtagsInPost.length > 0){
-    const hashtagIsInOtherPosts = await hashtagsRepository.findHashtagInOtherPosts(hashtagsInPost, postId);
 
-    await hashtagsPostsRepository.deleteHashtagsRelation(postId);
-    
-    await hashtagsRepository.deleteMany(hashtagIsInOtherPosts, hashtagsInPost);
+
+export async function createPost(url, description, user){
+  const metadata = await urlMetadata(url);
+
+  const postData = {
+    userId: user.id,
+    description,
+    url,
+    metadataDescription: metadata.description,
+    metadataImage: metadata.image,
+    metadataTitle: metadata.title
   }
 
-  return true;
+  await postsRepository.insert(postData);
+  
+  const { insertQuery, filteredHashtagsInPost } = await hashtagService.createHashtags(description);
+
+  if (filteredHashtagsInPost.length > 0) {
+    await hashtagService.createRelation(user.id, insertQuery, filteredHashtagsInPost);
+  }
 }
 
-const postsService = {
-  list,
-  findOne,
-  deletePostHashtags,
-  repost
-}
+export async function deletePost(user, postId){
+  if (isNaN(postId)) throw new BadRequest()
 
-export default postsService;
+  await findOne(postId, user.id);
+
+  await hashtagService.deletePostHashtags(postId, user.id);
+
+  await likeRepository.deleteLikesRelation(postId);
+  
+  await repostRepository.deleteRepostsRelation(postId)
+
+  await commentsRepository.deleteComments(postId);
+
+  await postsRepository.deletePost(postId);
+}

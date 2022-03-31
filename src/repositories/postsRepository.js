@@ -114,16 +114,7 @@ async function findLatestPost(userId) {
   return promise;
 }
 
-async function getNameByLikes() {
-  const promise = await connection.query(`
-  SELECT "postId", name AS "userName"
-  FROM users
-  JOIN likes ON likes."userId" = users.id
-  GROUP BY "postId", name
-  `)
 
-  return promise
-}
 
 async function findOne(postId) {
   const promise = await connection.query(`
@@ -138,79 +129,12 @@ async function deletePost(postId) {
   return promise;
 }
 
-async function deleteComments(postId) {
-  const promise = await connection.query(`DELETE FROM comments WHERE "postId"=$1`, [postId]);
-  return promise;
-}
-
-async function insertLike(postId, userId, isLiked) {
-
-  const promise = await connection.query(`
-      INSERT INTO likes
-          ("userId", "postId", "isLike") VALUES ($1, $2, $3)
-  `, [userId, postId, isLiked])
-
-  return promise
-}
-
-async function deleteLike(postId, userId) {
-  const promise = await connection.query(`
-      DELETE FROM likes 
-          WHERE "postId" = $1 AND "userId" = $2
-      `, [postId, userId]);
-
-  return promise;
-}
-
-async function createRepost(userId, postId) {
-  const result = await connection.query(`
-    INSERT INTO reposts ("userId", "postId") 
-         VALUES ($1, $2)
-    `, [userId, postId]);
-
-  if (!result.rowCount) return false;
-
-  return true;
-}
-
-async function deleteRepost(userId, postId) {
-  const result = await connection.query(`
-    DELETE 
-      FROM reposts 
-     WHERE "userId" = $1 AND "postId" = $2
-    `, [userId, postId]);
-
-  if (!result.rowCount) return false;
-
-  return true;
-}
-
-async function deleteRepostsRelation(postId) {
-  const result = await connection.query(`
-    DELETE 
-      FROM reposts 
-     WHERE "postId" = $1
-    `, [postId]);
-
-  if (!result.rowCount) return false;
-
-  return true;
-}
-
-
 const postsRepository = {
   list,
   insert,
   findLatestPost,
   findOne,
-  deletePost,
-  deleteComments,
-  getNameByLikes,
-  insertLike,
-  deleteLike,
-  createRepost,
-  deleteRepost,
-  deleteRepostsRelation
+  deletePost
 };
 
 export default postsRepository;

@@ -1,8 +1,7 @@
-import { hashtagsRepository } from "../repositories/hashtagsRepository.js";
 import { findHashtags } from "../utils/findHashtags.js";
 import { getNonexistentHashtags } from "../utils/getNonexistentHashtags.js";
 import postsRepository from "../repositories/postsRepository.js";
-import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js"
+import * as hashtagsRepository from "../repositories/hashtagsRepository.js"
 import BadRequest from "../errors/badRequest.js";
 
 export async function createHashtags(description) {
@@ -41,7 +40,21 @@ export async function createRelation(userId, insertQuery, hashtags) {
   
   const hashtagRelations = hashtagsInPost.map(h => `('${h}', ${post.id})`).join(`, `);
   
-  await hashtagsPostsRepository.insert(hashtagRelations);
+  await hashtagsRepository.insertHashtagsRelation(hashtagRelations);
+
+  return true;
+}
+
+export async function deletePostHashtags(postId, userId) {
+  const hashtagsInPost = await hashtagsRepository.findHashtagsInPost(postId, userId);
+  
+  if (hashtagsInPost.length > 0){
+    const hashtagIsInOtherPosts = await hashtagsRepository.findHashtagInOtherPosts(hashtagsInPost, postId);
+
+    await hashtagsRepository.deleteHashtagsRelation(postId);
+    
+    await hashtagsRepository.deleteMany(hashtagIsInOtherPosts, hashtagsInPost);
+  }
 
   return true;
 }

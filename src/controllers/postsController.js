@@ -1,8 +1,6 @@
 import postsRepository from "../repositories/postsRepository.js";
-import urlMetadata from "url-metadata";
-import { createHashtags, createRelation } from "../services/hashtagsService.js";
-import postsService from "../services/postsService.js";
-import { hashtagsPostsRepository } from "../repositories/hashtagsPostsRepository.js";
+import * as postsService from "../services/postsService.js";
+import * as likesRepository from "../repositories/likeRepository.js";
 
 import { findHashtags } from "../utils/findHashtags.js";
 import NotFound from "../errors/NotFoundError.js";
@@ -16,24 +14,7 @@ export async function createPost(req, res) {
   const { url, description } = req.body;
 
   try {
-    const metadata = await urlMetadata(url);
-
-    const postData = {
-      userId: user.id,
-      description,
-      url,
-      metadataDescription: metadata.description,
-      metadataImage: metadata.image,
-      metadataTitle: metadata.title
-    }
-
-    const { insertQuery, filteredHashtagsInPost } = await createHashtags(description);
-
-    await postsRepository.insert(postData);
-
-    if (filteredHashtagsInPost.length > 0) {
-      await createRelation(user.id, insertQuery, filteredHashtagsInPost);
-    }
+    await postsService.createPost(url, description, user)
 
     res.sendStatus(201);
   } catch (error) {
@@ -51,6 +32,7 @@ export async function repost(req, res) {
     const result = await postsService.repost(user.id, id)
 
     if(result === "deleted") return res.sendStatus(200);
+
     res.sendStatus(201)
   } catch (error) {
     if (error instanceof BadRequest) return res.status(error.status).send(error.message);
@@ -62,23 +44,9 @@ export async function repost(req, res) {
 export async function deletePost(req, res) {
   const { user } = res.locals;
   let { id: postId } = req.params;
-
-  if (isNaN(postId)) {
-    res.sendStatus(404);
-  }
-
+  
   try {
-    await postsService.findOne(postId, user.id);
-
-    await postsService.deletePostHashtags(postId, user.id);
-
-    await hashtagsPostsRepository.deleteLikesRelation(postId);
-    
-    await postsRepository.deleteRepostsRelation(postId)
-
-    await postsRepository.deleteComments(postId);
-
-    await postsRepository.deletePost(postId);
+    await postsService.deletePost(user, postId)
 
     res.sendStatus(200);
   } catch (error) {
@@ -314,7 +282,7 @@ export async function deleteLike(req, res) {
   const { isLiked, userId } = req.body
 
   try {
-    await postsRepository.deleteLike(id, userId, isLiked)
+    await likesRepository.deleteLike(id, userId, isLiked)
     res.sendStatus(200)
   } catch (error) {
     console.log(error);
@@ -327,7 +295,7 @@ export async function newLike(req, res) {
   const { isLiked, userId } = req.body
 
   try {
-    await postsRepository.insertLike(id, userId, isLiked)
+    await likesRepository.insertLike(id, userId, isLiked)
     res.sendStatus(200)
   } catch (error) {
     console.log(error);
