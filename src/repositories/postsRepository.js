@@ -97,10 +97,13 @@ async function list(where, queryArgs, hashtagRelation, repostsWhere, limit) {
 }
 
 async function insert(postData) {
+  const queryName = Object.keys(postData).map(k => `"${k}"`).join(", ")
   const queryArgs = Object.values(postData);
+  const queryParams = queryArgs.map( (key, index) => `$${index + 1}`).join(", ");
+
   const promise = await connection.query(`
-    INSERT INTO posts ("userId", description, url, "metadataDescription", "metadataImage", "metadataTitle") 
-      VALUES ($1, $2, $3, $4, $5, $6);
+    INSERT INTO posts (${queryName}) 
+      VALUES (${queryParams});
   `, queryArgs);
 
   return promise;

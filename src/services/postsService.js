@@ -38,7 +38,7 @@ export async function list(userId, userSearchedId, hashtagName, limit){
     WHERE  "sharerId" IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
     `
     where = `WHERE posts."userId" 
-      IN (SELECT "followedId" FROM followers WHERE "followerId"=$1) OR posts."userId"=$1 
+      IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
     `;
   }
 
@@ -96,8 +96,6 @@ export async function repost(userId, postId) {
   return "created";
 }
 
-
-
 export async function createPost(url, description, user){
   const metadata = await urlMetadata(url);
 
@@ -108,6 +106,10 @@ export async function createPost(url, description, user){
     metadataDescription: metadata.description,
     metadataImage: metadata.image,
     metadataTitle: metadata.title
+  }
+
+  if (!postData.metadataImage) {
+    delete postData.metadataImage;
   }
 
   await postsRepository.insert(postData);
