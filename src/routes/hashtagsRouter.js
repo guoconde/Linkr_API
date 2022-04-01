@@ -5,7 +5,7 @@ import validateTokenMiddleware from "../middlewares/validateTokenMiddleware.js";
 
 const hashtagsRouter = Router();
 
-hashtagsRouter.get('/hashtags', validateTokenMiddleware,getHashtags);
+hashtagsRouter.get('/hashtags', validateTokenMiddleware, getHashtags);
 hashtagsRouter.get('/hashtag/:hashtag', validateTokenMiddleware, listPosts);
 
 export default hashtagsRouter;

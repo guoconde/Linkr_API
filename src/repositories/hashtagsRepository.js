@@ -2,12 +2,20 @@ import connection from "../db.js";
 import toArrayOfIds from "../utils/toArrayOfIds.js";
 
 export async function insert(values) {
-  return await connection.query(`INSERT INTO hashtags (name) VALUES ${values}`);
+  return await connection.query(`
+    INSERT INTO hashtags 
+      (name) 
+    VALUES 
+      ${values}
+  `);
 }
 
 export async function find(params, hashtags) {
   const result = await connection.query(`
-    SELECT * from hashtags WHERE name IN (${params})
+    SELECT 
+      * 
+    FROM hashtags 
+    WHERE name IN (${params})
   `, hashtags);
 
   return result;
@@ -56,6 +64,20 @@ export async function insertHashtagsRelation(values) {
       ("hashtagId", "postId") 
     VALUES 
       ${values}
+  `);
+}
+
+export async function listHashtags() {
+  return await connection.query(`
+    SELECT 
+      h.*,
+      hp."hashtagId" AS "hashtagId",
+      COUNT(hp."hashtagId") AS "hashtagCount"
+    FROM hashtags AS h
+      JOIN "hashtagsPosts" AS hp ON hp."hashtagId"=h.id
+    GROUP BY hp."hashtagId", h.id
+    ORDER BY "hashtagCount" DESC
+    LIMIT 10
   `);
 }
 
