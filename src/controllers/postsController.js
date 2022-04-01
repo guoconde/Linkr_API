@@ -1,9 +1,12 @@
 import * as postsService from "../services/postsService.js";
 import * as likesRepository from "../repositories/likeRepository.js";
+import * as hashtagsRepository from "../repositories/hashtagsRepository.js";
 import { findHashtags } from "../utils/findHashtags.js";
 import { repeatedHashtags } from "../utils/repeatedHashtags.js";
 import { newHashtags } from "../utils/newHashtags.js";
 import { deletedHashtags } from "../utils/deletedHashtags.js";
+import { newHashtagsNotInserted } from "../utils/newHashtagsNotInserted.js";
+import { hashtagsToBeDeleted } from "../utils/hashtagsToBeDeleted.js";
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import NoContent from "../errors/NoContentError.js";
@@ -84,154 +87,57 @@ export async function updatePost(req, res) {
     await postsService.updatePostDescription(post.description, id, user.id);
 
     const newHashtagsFound = newHashtags(currentHashtags, originalHashtags);
-
     const deletedHashtagsFound = deletedHashtags(newHashtagsFound, originalHashtags, currentHashtags);
 
     if (newHashtagsFound.length) {
       const searchNewHashtags = newHashtagsFound.map(h => `name='${h}'`).join(` OR `);
-      const seachedHastags = await connection.query(`
-        SELECT 
-          *
-        FROM hashtags
-        WHERE ${searchNewHashtags}
-      `);
 
-      const newHashtagsNotInserted = [];
-      for (let i = 0; i < newHashtagsFound.length; i++) {
-        const hashtag = newHashtagsFound[i];
-        if (!seachedHastags.rows.find(h => h.name === hashtag)) {
-          newHashtagsNotInserted.push(hashtag);
-        }
+      const seachedHastags = await hashtagsRepository.specificsHashtags(searchNewHashtags);
+
+      const newHashtagsNotInsertedFound = newHashtagsNotInserted(newHashtagsFound, seachedHastags);
+      if (newHashtagsNotInsertedFound.length > 0) {
+        const hashtagNotInserted = newHashtagsNotInsertedFound.map(h => `('${h}')`).join(`, `);
+        await hashtagsRepository.insert(hashtagNotInserted);
       }
 
-      if (newHashtagsNotInserted.length > 0) {
-        const hashtagNotInserted = newHashtagsNotInserted.map(h => `('${h}')`).join(`, `);
-        await connection.query(`
-          INSERT INTO hashtags 
-            (name)
-          VALUES
-            ${hashtagNotInserted}
-        `);
+      const searchCurrentHashtags = currentHashtags.map(h => `name='${h}'`).join(` OR `);
+      const searchAllHastags = await hashtagsRepository.specificsHashtags(searchCurrentHashtags);
 
-        const searchCurrentHashtags = currentHashtags.map(h => `name='${h}'`).join(` OR `);
-        const searchAllHastags = await connection.query(`
-          SELECT 
-            *
-          FROM hashtags
-          WHERE ${searchCurrentHashtags}
-        `);
+      await hashtagsRepository.deleteHashtagsRelation(id);
 
-        await connection.query(`
-          DELETE FROM "hashtagsPosts"
-          WHERE "postId"=$1
-        `, [id]);
-
-        const hashtagRelations = searchAllHastags.rows.map(h => `('${h.id}', ${id})`).join(`, `);
-        await connection.query(`
-          INSERT INTO "hashtagsPosts" 
-            ("hashtagId", "postId") 
-          VALUES 
-            ${hashtagRelations}
-        `);
-      } else {
-        const searchCurrentHashtags = currentHashtags.map(h => `name='${h}'`).join(` OR `);
-        const searchAllHastags = await connection.query(`
-          SELECT 
-            *
-          FROM hashtags
-          WHERE ${searchCurrentHashtags}
-        `);
-
-        await connection.query(`
-          DELETE FROM "hashtagsPosts"
-          WHERE "postId"=$1
-        `, [id]);
-
-        const hashtagRelations = searchAllHastags.rows.map(h => `('${h.id}', ${id})`).join(`, `);
-        await connection.query(`
-          INSERT INTO "hashtagsPosts" 
-            ("hashtagId", "postId") 
-          VALUES 
-            ${hashtagRelations}
-        `);
-      }
+      const hashtagRelations = searchAllHastags.rows.map(h => `('${h.id}', ${id})`).join(`, `);
+      await hashtagsRepository.insertHashtagsRelation(hashtagRelations);
     } else if (deletedHashtagsFound.length) {
       if (deletedHashtagsFound.length === originalHashtags.length &&
         originalHashtags.length !== 0) {
 
-        await connection.query(`
-          DELETE FROM "hashtagsPosts"
-          WHERE "postId"=$1
-        `, [id]);
+        await hashtagsRepository.deleteHashtagsRelation(id);
 
         const searchOriginalHashtags = originalHashtags.map(h => `name='${h}'`).join(` OR `);
-        const searchAllHastags = await connection.query(`
-          SELECT 
-            *
-          FROM hashtags
-          WHERE ${searchOriginalHashtags}
-        `);
+        const searchAllHastags = await hashtagsRepository.specificsHashtags(searchOriginalHashtags);
 
         const searchUsedHashtagsArr = searchAllHastags.rows.map(h => `"hashtagId"='${h.id}'`).join(` OR `);
-        const searchUsedHashtags = await connection.query(`
-          SELECT 
-            *
-          FROM "hashtagsPosts"
-          WHERE ${searchUsedHashtagsArr}
-        `);
+        const searchUsedHashtags = await hashtagsRepository.specificsHashtagsRelation(searchUsedHashtagsArr);
 
-        const hashtagsToBeDeleted = [];
-        for (let i = 0; i < searchAllHastags.rows.length; i++) {
-          const hashtag = searchAllHastags.rows[i];
-          if (!searchUsedHashtags.rows.find(h => h.hashtagId === hashtag.id)) {
-            hashtagsToBeDeleted.push(hashtag);
-          }
-        }
-
-        if (hashtagsToBeDeleted.length) {
-          const searchToBeDeleteHashtags = hashtagsToBeDeleted.map(h => `id='${h.id}'`).join(` OR `);
-          await connection.query(`
-            DELETE FROM hashtags
-            WHERE ${searchToBeDeleteHashtags}
-          `);
+        const hashtagsToBeDeletedFound = hashtagsToBeDeleted(searchAllHastags, searchUsedHashtags);
+        if (hashtagsToBeDeletedFound.length) {
+          const searchToBeDeleteHashtags = hashtagsToBeDeletedFound.map(h => `id='${h.id}'`).join(` OR `);
+          await hashtagsRepository.deleteSpecificsHashtags(searchToBeDeleteHashtags);
         }
       } else {
         const searchDeletedHashtagsArr = deletedHashtagsFound.map(h => `name='${h}'`).join(` OR `);
-        const searchDeletedHashtags = await connection.query(`
-          SELECT 
-            *
-          FROM hashtags
-          WHERE ${searchDeletedHashtagsArr}
-        `);
+        const searchDeletedHashtags = await hashtagsRepository.specificsHashtags(searchDeletedHashtagsArr);
 
         const searchToBeDeleteHashtagsInPost = searchDeletedHashtags.rows.map(h => `"hashtagId"='${h.id}'`).join(` OR `);
-        await connection.query(`
-          DELETE FROM "hashtagsPosts"
-          WHERE "postId"=$1 AND (${searchToBeDeleteHashtagsInPost}) 
-        `, [id]);
+        await hashtagsRepository.deleteHashtagsRelationInPost(id, searchToBeDeleteHashtagsInPost);
 
         const searchUsedHashtagsArr = searchDeletedHashtags.rows.map(h => `"hashtagId"='${h.id}'`).join(` OR `);
-        const searchUsedHashtags = await connection.query(`
-          SELECT 
-            *
-          FROM "hashtagsPosts"
-          WHERE ${searchUsedHashtagsArr}
-        `);
-
-        const hashtagsToBeDeleted = [];
-        for (let i = 0; i < searchDeletedHashtags.rows.length; i++) {
-          const hashtag = searchDeletedHashtags.rows[i];
-          if (!searchUsedHashtags.rows.find(h => h.hashtagId === hashtag.id)) {
-            hashtagsToBeDeleted.push(hashtag);
-          }
-        }
-
-        if (hashtagsToBeDeleted.length) {
-          const searchToBeDeleteHashtags = hashtagsToBeDeleted.map(h => `id='${h.id}'`).join(` OR `);
-          await connection.query(`
-            DELETE FROM hashtags
-            WHERE ${searchToBeDeleteHashtags}
-          `);
+        const searchUsedHashtags = await hashtagsRepository.specificsHashtagsRelation(searchUsedHashtagsArr);
+        
+        const hashtagsToBeDeletedFound = hashtagsToBeDeleted(searchDeletedHashtags, searchUsedHashtags);
+        if (hashtagsToBeDeletedFound.length) {
+          const searchToBeDeleteHashtags = hashtagsToBeDeletedFound.map(h => `id='${h.id}'`).join(` OR `);
+          await hashtagsRepository.deleteSpecificsHashtags(searchToBeDeleteHashtags);
         }
       }
     }

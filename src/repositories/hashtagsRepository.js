@@ -1,6 +1,28 @@
 import connection from "../db.js";
 import toArrayOfIds from "../utils/toArrayOfIds.js";
 
+export async function specificsHashtags(values) {
+  const promise = await connection.query(`
+    SELECT 
+      *
+    FROM hashtags
+    WHERE ${values}
+  `);
+
+  return promise;
+}
+
+export async function specificsHashtagsRelation(values) {
+  const promise = await connection.query(`
+    SELECT 
+      *
+    FROM "hashtagsPosts"
+    WHERE ${values}
+  `);
+
+  return promise;
+}
+
 export async function insert(values) {
   return await connection.query(`
     INSERT INTO hashtags 
@@ -34,9 +56,9 @@ export async function findHashtagsInPost(postId, userId) {
   return hashtagsInPost;
 }
 
-export async function findHashtagInOtherPosts (hashtagsInPost, postId) {
+export async function findHashtagInOtherPosts(hashtagsInPost, postId) {
   const queryArgs = [...hashtagsInPost];
-  const comparisonValues = hashtagsInPost.map((id, index) => `$${index +1}`).join(", ");
+  const comparisonValues = hashtagsInPost.map((id, index) => `$${index + 1}`).join(", ");
   let hashtagIsInOtherPosts = await connection.query(`
     SELECT 
       "hashtagId" 
@@ -81,10 +103,29 @@ export async function listHashtags() {
   `);
 }
 
+export async function deleteSpecificsHashtags(values) {
+  const promise = await connection.query(` 
+    DELETE FROM hashtags
+    WHERE ${values}
+  `);
+
+  return promise;
+}
+
 export async function deleteHashtagsRelation(postId) {
   const promise = await connection.query(` 
-    DELETE FROM "hashtagsPosts" WHERE "postId"=$1
+    DELETE FROM "hashtagsPosts" 
+    WHERE "postId"=$1
   `, [postId]);
-  
+
+  return promise;
+}
+
+export async function deleteHashtagsRelationInPost(postId, values) {
+  const promise = await connection.query(` 
+    DELETE FROM "hashtagsPosts"
+    WHERE "postId"=$1 AND (${values})
+  `, [postId]);
+
   return promise;
 }
