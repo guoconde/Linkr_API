@@ -1,7 +1,7 @@
+import * as postsRepository from "../repositories/postsRepository.js";
+import * as hashtagsRepository from "../repositories/hashtagsRepository.js";
 import { findHashtags } from "../utils/findHashtags.js";
 import { getNonexistentHashtags } from "../utils/getNonexistentHashtags.js";
-import postsRepository from "../repositories/postsRepository.js";
-import * as hashtagsRepository from "../repositories/hashtagsRepository.js";
 import BadRequest from "../errors/badRequest.js";
 
 export async function createHashtags(description) {

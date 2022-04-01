@@ -1,6 +1,6 @@
 import connection from "../db.js";
 
-async function list(where, queryArgs, hashtagRelation, repostsWhere, limit) {
+export async function list(where, queryArgs, hashtagRelation, repostsWhere, limit) {
   const { rows: posts } = await connection.query(`
     SELECT 	users.id AS "userId", users.name, users.photo,
             posts.id, url, description, "metadataDescription", "metadataImage", "metadataTitle",
@@ -15,26 +15,26 @@ async function list(where, queryArgs, hashtagRelation, repostsWhere, limit) {
     ${hashtagRelation}
     JOIN users ON users.id = posts."userId"
     LEFT JOIN(
-          SELECT "postId", "isLike"
-          FROM likes
-          WHERE likes."userId" = $1
-          GROUP BY "postId", likes.id
+      SELECT "postId", "isLike"
+      FROM likes
+      WHERE likes."userId" = $1
+      GROUP BY "postId", likes.id
     ) AS "userLikes" ON "userLikes"."postId" = posts.id
     LEFT JOIN(
-          SELECT "postId"
-          FROM reposts
-          WHERE reposts."userId" = $1
-          GROUP BY "postId", reposts.id
+      SELECT "postId"
+      FROM reposts
+      WHERE reposts."userId" = $1
+      GROUP BY "postId", reposts.id
     ) AS "userReposts" ON "userReposts"."postId" = posts.id
     LEFT JOIN(
-          SELECT "postId", COUNT(*) AS "postLikes"
-          FROM likes
-          GROUP BY "postId"
+      SELECT "postId", COUNT(*) AS "postLikes"
+      FROM likes
+      GROUP BY "postId"
     ) AS "postsLiked" ON "postsLiked"."postId" = posts.id
     JOIN(
-        SELECT "postId", COUNT(*) AS "reposts"
-        FROM reposts
-        GROUP BY "postId"
+      SELECT "postId", COUNT(*) AS "reposts"
+      FROM reposts
+      GROUP BY "postId"
     ) AS "postsReposted" ON "postsReposted"."postId" = posts.id
     LEFT JOIN(
       SELECT "postId", COUNT(*) AS "commentsCount"
@@ -42,9 +42,9 @@ async function list(where, queryArgs, hashtagRelation, repostsWhere, limit) {
       GROUP BY "postId"
     ) AS "postsCommented" ON "postsCommented"."postId" = posts.id
     JOIN(
-        SELECT users.name AS "sharerName", users.id AS "sharerId", reposts.id
-        FROM reposts
-        JOIN users ON users.id = reposts."userId"
+      SELECT users.name AS "sharerName", users.id AS "sharerId", reposts.id
+      FROM reposts
+      JOIN users ON users.id = reposts."userId"
     ) AS "repostsUser" ON "repostsUser".id = reposts.id
     ${repostsWhere}
     UNION ALL 
@@ -60,21 +60,21 @@ async function list(where, queryArgs, hashtagRelation, repostsWhere, limit) {
     ${hashtagRelation}
     JOIN users ON users.id = posts."userId"
     LEFT JOIN(
-          SELECT *, COUNT(*)
-          FROM likes
-          WHERE likes."userId" = $1
-          GROUP BY "postId", likes.id
+      SELECT *, COUNT(*)
+      FROM likes
+      WHERE likes."userId" = $1
+      GROUP BY "postId", likes.id
     ) AS "userLikes" ON "userLikes"."postId" = posts.id
     LEFT JOIN(
-        SELECT "postId"
-        FROM reposts
-        WHERE reposts."userId" = $1
-        GROUP BY "postId", reposts.id
+      SELECT "postId"
+      FROM reposts
+      WHERE reposts."userId" = $1
+      GROUP BY "postId", reposts.id
     ) AS "userReposts" ON "userReposts"."postId" = posts.id
     LEFT JOIN(
-          SELECT "postId", COUNT(*) AS "postLikes"
-          FROM likes
-          GROUP BY "postId"
+      SELECT "postId", COUNT(*) AS "postLikes"
+      FROM likes
+      GROUP BY "postId"
     ) AS "postsLiked" ON "postsLiked"."postId" = posts.id
     LEFT JOIN(
       SELECT "postId", COUNT(*) AS "commentsCount"
@@ -82,9 +82,9 @@ async function list(where, queryArgs, hashtagRelation, repostsWhere, limit) {
       GROUP BY "postId"
     ) AS "postsCommented" ON "postsCommented"."postId" = posts.id
     LEFT JOIN(
-        SELECT "postId", COUNT(*) AS "reposts"
-        FROM reposts
-        GROUP BY "postId"
+      SELECT "postId", COUNT(*) AS "reposts"
+      FROM reposts
+      GROUP BY "postId"
     ) AS "postsReposted" ON "postsReposted"."postId" = posts.id
     ${where}
     ORDER BY date DESC
@@ -96,42 +96,65 @@ async function list(where, queryArgs, hashtagRelation, repostsWhere, limit) {
   return posts;
 }
 
-async function insert(postData) {
+export async function insert(postData) {
   const queryName = Object.keys(postData).map(k => `"${k}"`).join(", ")
   const queryArgs = Object.values(postData);
   const queryParams = queryArgs.map( (key, index) => `$${index + 1}`).join(", ");
 
   const promise = await connection.query(`
-    INSERT INTO posts (${queryName}) 
-      VALUES (${queryParams});
+    INSERT INTO posts 
+      (${queryName}) 
+    VALUES 
+      (${queryParams})
   `, queryArgs);
 
   return promise;
 }
 
-async function findLatestPost(userId) {
+export async function findLatestPost(userId) {
   const promise = await connection.query(`
-    SELECT * FROM posts WHERE "userId"=$1 ORDER BY id DESC LIMIT 1
-  `, [userId]);;
+    SELECT 
+      * 
+    FROM posts 
+    WHERE "userId"=$1 
+    ORDER BY id DESC 
+    LIMIT 1
+  `, [userId]);
 
   return promise;
 }
 
-async function findOne(postId) {
+export async function findOne(postId) {
   const promise = await connection.query(`
-    SELECT id, "userId" FROM posts WHERE id=$1
+    SELECT 
+      id, "userId" 
+    FROM posts 
+    WHERE id=$1
   `, [postId]);
 
   return promise;
 }
 
-async function deletePost(postId) {
-  const promise = await connection.query(`DELETE FROM posts WHERE id=$1`, [postId]);
+export async function deletePost(postId) {
+  const promise = await connection.query(`
+    DELETE FROM posts 
+    WHERE id=$1
+  `, [postId]);
   
   return promise;
 }
 
-async function getCountPosts(userId) {
+export async function updatePostDescription(description, postId, userId) {
+  const promise = await connection.query(`
+    UPDATE posts 
+      SET description=$1 
+    WHERE id=$2 AND "userId"=$3
+  `, [description, postId, userId]);
+
+  return promise;
+}
+
+export async function getCountPosts(userId) {
   const promise = await connection.query(`
     SELECT 
       COUNT(id) 
@@ -148,14 +171,3 @@ async function getCountPosts(userId) {
 
   return promise;
 }
-
-const postsRepository = {
-  list,
-  insert,
-  findLatestPost,
-  findOne,
-  deletePost,
-  getCountPosts
-};
-
-export default postsRepository;

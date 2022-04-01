@@ -1,10 +1,10 @@
-import postsRepository from "../repositories/postsRepository.js";
+import * as postsRepository from "../repositories/postsRepository.js";
 import * as userRepository from "../repositories/userRepository.js"
 import * as repostRepository from "../repositories/repostsRepository.js";
-import urlMetadata from "url-metadata";
 import * as hashtagService from "../services/hashtagsService.js";
 import * as likeRepository from "../repositories/likeRepository.js";
 import * as commentsRepository from "../repositories/commentsRepository.js";
+import urlMetadata from "url-metadata";
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import BadRequest from "../errors/badRequest.js";
@@ -133,4 +133,10 @@ export async function deletePost(user, postId){
   await commentsRepository.deleteComments(postId);
 
   await postsRepository.deletePost(postId);
+}
+
+export async function updatePostDescription(description, postId, userId) {
+  if (isNaN(postId)) throw new BadRequest();
+  
+  await postsRepository.updatePostDescription(description, postId, userId);
 }

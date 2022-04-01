@@ -1,6 +1,9 @@
 import * as postsService from "../services/postsService.js";
 import * as likesRepository from "../repositories/likeRepository.js";
 import { findHashtags } from "../utils/findHashtags.js";
+import { repeatedHashtags } from "../utils/repeatedHashtags.js";
+import { newHashtags } from "../utils/newHashtags.js";
+import { deletedHashtags } from "../utils/deletedHashtags.js";
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import NoContent from "../errors/NoContentError.js";
@@ -72,51 +75,30 @@ export async function updatePost(req, res) {
     const originalHashtags = findHashtags(post.originalDescription);
     const currentHashtags = findHashtags(post.description);
 
-    for (let i = 0; i < currentHashtags.length; i++) {
-      let newHashtagRep = currentHashtags[i];
-      if (currentHashtags.indexOf(newHashtagRep) !== -1 &&
-        currentHashtags.indexOf(newHashtagRep) !== i) {
-        res.status(400).send("Unable to edit, repeated hashtags, try again!");
-        return;
-      }
+    const isRepeatedHashtags = repeatedHashtags(currentHashtags);
+    if(isRepeatedHashtags){
+      res.status(400).send("Unable to edit, repeated hashtags, try again!");
+      return;
     }
 
-    await connection.query(`
-      UPDATE posts 
-        SET description=$1 
-      WHERE id=$2 AND "userId"=$3
-    `, [post.description, id, user.id]);
+    await postsService.updatePostDescription(post.description, id, user.id);
 
-    const newHashtags = [];
-    for (let i = 0; i < currentHashtags.length; i++) {
-      const hashtag = currentHashtags[i];
-      if (originalHashtags.indexOf(hashtag) === -1) {
-        newHashtags.push(hashtag);
-      }
-    }
+    const newHashtagsFound = newHashtags(currentHashtags, originalHashtags);
 
-    const deletedHashtags = [];
-    if (!newHashtags.length && originalHashtags.length > currentHashtags.length) {
-      for (let i = 0; i < originalHashtags.length; i++) {
-        const hashtag = originalHashtags[i];
-        if (currentHashtags.indexOf(hashtag) === -1) {
-          deletedHashtags.push(hashtag);
-        }
-      }
-    }
+    const deletedHashtagsFound = deletedHashtags(newHashtagsFound, originalHashtags, currentHashtags);
 
-    if (newHashtags.length) {
-      const searchNewHashtags = newHashtags.map(h => `name='${h}'`).join(` OR `);
+    if (newHashtagsFound.length) {
+      const searchNewHashtags = newHashtagsFound.map(h => `name='${h}'`).join(` OR `);
       const seachedHastags = await connection.query(`
         SELECT 
           *
         FROM hashtags
-          WHERE ${searchNewHashtags}
+        WHERE ${searchNewHashtags}
       `);
 
       const newHashtagsNotInserted = [];
-      for (let i = 0; i < newHashtags.length; i++) {
-        const hashtag = newHashtags[i];
+      for (let i = 0; i < newHashtagsFound.length; i++) {
+        const hashtag = newHashtagsFound[i];
         if (!seachedHastags.rows.find(h => h.name === hashtag)) {
           newHashtagsNotInserted.push(hashtag);
         }
@@ -136,7 +118,7 @@ export async function updatePost(req, res) {
           SELECT 
             *
           FROM hashtags
-            WHERE ${searchCurrentHashtags}
+          WHERE ${searchCurrentHashtags}
         `);
 
         await connection.query(`
@@ -157,7 +139,7 @@ export async function updatePost(req, res) {
           SELECT 
             *
           FROM hashtags
-            WHERE ${searchCurrentHashtags}
+          WHERE ${searchCurrentHashtags}
         `);
 
         await connection.query(`
@@ -173,8 +155,8 @@ export async function updatePost(req, res) {
             ${hashtagRelations}
         `);
       }
-    } else if (deletedHashtags.length) {
-      if (deletedHashtags.length === originalHashtags.length &&
+    } else if (deletedHashtagsFound.length) {
+      if (deletedHashtagsFound.length === originalHashtags.length &&
         originalHashtags.length !== 0) {
 
         await connection.query(`
@@ -187,7 +169,7 @@ export async function updatePost(req, res) {
           SELECT 
             *
           FROM hashtags
-            WHERE ${searchOriginalHashtags}
+          WHERE ${searchOriginalHashtags}
         `);
 
         const searchUsedHashtagsArr = searchAllHastags.rows.map(h => `"hashtagId"='${h.id}'`).join(` OR `);
@@ -214,7 +196,7 @@ export async function updatePost(req, res) {
           `);
         }
       } else {
-        const searchDeletedHashtagsArr = deletedHashtags.map(h => `name='${h}'`).join(` OR `);
+        const searchDeletedHashtagsArr = deletedHashtagsFound.map(h => `name='${h}'`).join(` OR `);
         const searchDeletedHashtags = await connection.query(`
           SELECT 
             *
