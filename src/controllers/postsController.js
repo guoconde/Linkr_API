@@ -10,7 +10,6 @@ import { hashtagsToBeDeleted } from "../utils/hashtagsToBeDeleted.js";
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import NoContent from "../errors/NoContentError.js";
-import connection from "../db.js";
 import BadRequest from "../errors/badRequest.js";
 
 export async function createPost(req, res) {
