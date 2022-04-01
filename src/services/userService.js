@@ -16,24 +16,28 @@ export async function findUsers(find, user) {
   if (!find) return [];
 
   const data = await userRepository.findUsersInput([find]);
+  
   const matchesIds = data.map(user => user.id);
-  const { rows: userIsFollowing } = await userRepository.findRelationOfFollow(user.id, matchesIds);
-
-  const users = data.map(user => {
-    const isFollowing = userIsFollowing.find(u => user.id === u.followedId);
-    if (isFollowing) {
-      return { ...user, isFollowing: true }
-    } else {
-      return { ...user, isFollowing: false }
-    }
-  });
-
-  users.sort((user1, user2) => {
-    const isEquivalent = user1.isFollowing === user2.isFollowing;
-    return (isEquivalent) ? 0 : user1.isFollowing ? -1 : 1;
-  });
-
-  return users;
+  if (matchesIds.length > 0) {
+    const { rows: userIsFollowing } = await userRepository.findRelationOfFollow(user.id, matchesIds);
+    const users = data.map(user => {
+      const isFollowing = userIsFollowing.find(u => user.id === u.followedId);
+      if (isFollowing) {
+        return { ...user, isFollowing: true }
+      } else {
+        return { ...user, isFollowing: false }
+      }
+    });
+  
+    users.sort((user1, user2) => {
+      const isEquivalent = user1.isFollowing === user2.isFollowing;
+      return (isEquivalent) ? 0 : user1.isFollowing ? -1 : 1;
+    });
+  
+    return users;
+  } else {
+    return [];
+  }
 }
 
 export async function newFollow(followedId, user) {
