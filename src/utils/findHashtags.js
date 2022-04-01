@@ -3,10 +3,12 @@ export function findHashtags(description, deleteDuplicate) {
   const hashtagsSent = description
     .split(" ")
     .filter((str) => validateHashtags.test(str));
+
   if (deleteDuplicate) {
     const hashtags = removeDuplicate(hashtagsSent);
     return hashtags;
   }
+  
   return hashtagsSent;
 }
 

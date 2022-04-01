@@ -1,62 +1,60 @@
 import postsRepository from "../repositories/postsRepository.js";
 import * as userRepository from "../repositories/userRepository.js"
-import * as repostRepository from "../repositories/repostsRepository.js"
-
+import * as repostRepository from "../repositories/repostsRepository.js";
 import urlMetadata from "url-metadata";
 import * as hashtagService from "../services/hashtagsService.js";
 import * as likeRepository from "../repositories/likeRepository.js";
 import * as commentsRepository from "../repositories/commentsRepository.js";
-
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
 import BadRequest from "../errors/badRequest.js";
 
 export async function list(userId, userSearchedId, hashtagName, limit){
-  let where = ""
-  let queryArgs = [userId]
-  let hashtagRelation = ""
+  let where = "";
+  let queryArgs = [userId];
+  let hashtagRelation = "";
   let repostsWhere = "";
   
   if(hashtagName){
-    where += "WHERE hashtags.name = $2"
-    repostsWhere= `
-    WHERE  "sharerId" IS NULL
-    `
-    queryArgs.push(`#${hashtagName}`)
+    where += "WHERE hashtags.name = $2";
+    repostsWhere = `WHERE "sharerId" IS NULL`;
+
+    queryArgs.push(`#${hashtagName}`);
     hashtagRelation = `
-    LEFT JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
-    LEFT JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
-    `
+      LEFT JOIN "hashtagsPosts" ON "hashtagsPosts"."postId" = posts.id
+      LEFT JOIN hashtags ON hashtags.id = "hashtagsPosts"."hashtagId"
+    `;
   } else if (userSearchedId){
-    where += "WHERE users.id = $2"
-    repostsWhere= `
-    WHERE  "sharerId" = $2
-    `
-    queryArgs.push(userSearchedId)
+    where += "WHERE users.id = $2";
+    repostsWhere = `WHERE  "sharerId" = $2`;
+
+    queryArgs.push(userSearchedId);
   } else {
-    repostsWhere= `
-    WHERE  "sharerId" IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
-    `
-    where = `WHERE posts."userId" 
+    repostsWhere = `
+      WHERE  "sharerId" 
+      IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
+    `;
+    where = `
+      WHERE posts."userId" 
       IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
     `;
   }
 
-  const totalPosts = await postsRepository.getCountPosts(userId)
-  const posts =  await postsRepository.list(where ,queryArgs, hashtagRelation, repostsWhere, limit)
+  const totalPosts = await postsRepository.getCountPosts(userId);
+  const posts =  await postsRepository.list(where ,queryArgs, hashtagRelation, repostsWhere, limit);
   const isFollowingSomeone = await userRepository.findFollowed(userId);
-  const { rows: names } = await likeRepository.getNameByLikes()
+  const { rows: names } = await likeRepository.getNameByLikes();
 
   const postsWithLikes = posts.map((el) => {
-    const filteredNames = names.filter(post => post.postId === el.id)
-    const likeNames = filteredNames.map(element => element.userName)
+    const filteredNames = names.filter(post => post.postId === el.id);
+    const likeNames = filteredNames.map(element => element.userName);
 
-    return { ...el, likeNames }
-  })
+    return { ...el, likeNames };
+  });
 
   if (userSearchedId) {
-    const searchedUser = await userRepository.find('id', userSearchedId)
-    if (!searchedUser) throw new NotFound("User doesn't exists")
+    const searchedUser = await userRepository.find('id', userSearchedId);
+    if (!searchedUser) throw new NotFound("User doesn't exists");
 
     let isFollowing = null;
     if (userId !== parseInt(userSearchedId)) {
@@ -68,10 +66,10 @@ export async function list(userId, userSearchedId, hashtagName, limit){
       }
     }
 
-    return { name: searchedUser.name, posts: postsWithLikes, isFollowing, photo: searchedUser.photo } 
+    return { name: searchedUser.name, posts: postsWithLikes, isFollowing, photo: searchedUser.photo };
   }
   
-  const getCountPosts = parseInt(totalPosts.rows[0].count) + parseInt(totalPosts.rows[1].count)
+  const getCountPosts = parseInt(totalPosts.rows[0].count) + parseInt(totalPosts.rows[1].count);
 
   return {posts: postsWithLikes, isFollowingSomeone, getCountPosts};
 }
@@ -81,14 +79,14 @@ export async function findOne(postId, userId) {
 
   if(postExist.rowCount === 0) throw new NotFound(`Post doesn't exist`);
 
-  if (postExist.rows[0].userId !== userId) throw new Unauthorized("You can't delete this")
+  if (postExist.rows[0].userId !== userId) throw new Unauthorized("You can't delete this");
 
   return true;
 }
 
 export async function repost(userId, postId) {
   const deleted = await repostRepository.deleteRepost(userId, postId);
-  if (deleted) return "deleted"
+  if (deleted) return "deleted";
   
   const result = await repostRepository.createRepost(userId, postId);
   if (!result) throw new Error();
@@ -122,7 +120,7 @@ export async function createPost(url, description, user){
 }
 
 export async function deletePost(user, postId){
-  if (isNaN(postId)) throw new BadRequest()
+  if (isNaN(postId)) throw new BadRequest();
 
   await findOne(postId, user.id);
 
@@ -130,7 +128,7 @@ export async function deletePost(user, postId){
 
   await likeRepository.deleteLikesRelation(postId);
   
-  await repostRepository.deleteRepostsRelation(postId)
+  await repostRepository.deleteRepostsRelation(postId);
 
   await commentsRepository.deleteComments(postId);
 

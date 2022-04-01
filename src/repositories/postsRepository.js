@@ -117,8 +117,6 @@ async function findLatestPost(userId) {
   return promise;
 }
 
-
-
 async function findOne(postId) {
   const promise = await connection.query(`
     SELECT id, "userId" FROM posts WHERE id=$1
@@ -129,20 +127,25 @@ async function findOne(postId) {
 
 async function deletePost(postId) {
   const promise = await connection.query(`DELETE FROM posts WHERE id=$1`, [postId]);
+  
   return promise;
 }
 
 async function getCountPosts(userId) {
   const promise = await connection.query(`
-  SELECT COUNT(id) 
-  FROM posts
-  WHERE posts."userId" 
-  IN (SELECT "followedId" FROM followers WHERE "followerId"=$1) OR posts."userId"=$1
+    SELECT 
+      COUNT(id) 
+    FROM posts
+    WHERE posts."userId" 
+    IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
   UNION ALL 
-  SELECT COUNT(id) 
-  FROM reposts
-  WHERE  reposts."userId" IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
+    SELECT 
+      COUNT(id) 
+    FROM reposts
+    WHERE reposts."userId" 
+    IN (SELECT "followedId" FROM followers WHERE "followerId"=$1)
   `, [userId]);
+
   return promise;
 }
 

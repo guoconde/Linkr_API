@@ -5,8 +5,10 @@ import validateSchemaMiddleware from "../middlewares/validateSchemaMiddleware.js
 import validateTokenMiddleware from "../middlewares/validateTokenMiddleware.js";
 
 const userRouter = Router();
+
 userRouter.post('/sign-up', validateSchemaMiddleware, register);
 userRouter.get('/users', validateTokenMiddleware, findUsers);
-userRouter.get('/user/:id', validateTokenMiddleware, listPosts);
-userRouter.post("/users/follow", validateTokenMiddleware, newFollow);
+userRouter.get('/users/:id', validateTokenMiddleware, listPosts);
+userRouter.post('/users/follow', validateTokenMiddleware, newFollow);
+
 export default userRouter;

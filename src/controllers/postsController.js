@@ -1,7 +1,5 @@
-import postsRepository from "../repositories/postsRepository.js";
 import * as postsService from "../services/postsService.js";
 import * as likesRepository from "../repositories/likeRepository.js";
-
 import { findHashtags } from "../utils/findHashtags.js";
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
@@ -14,13 +12,14 @@ export async function createPost(req, res) {
   const { url, description } = req.body;
 
   try {
-    await postsService.createPost(url, description, user)
+    await postsService.createPost(url, description, user);
 
     res.sendStatus(201);
   } catch (error) {
     if (error instanceof BadRequest) return res.status(error.status).send(error.message);
-    res.sendStatus(500);
+
     console.log(error);
+    res.sendStatus(500);
   }
 }
 
@@ -29,31 +28,33 @@ export async function repost(req, res) {
   const { id } = req.params;
 
   try {
-    const result = await postsService.repost(user.id, id)
+    const result = await postsService.repost(user.id, id);
 
-    if(result === "deleted") return res.sendStatus(200);
+    if (result === "deleted") return res.sendStatus(200);
 
-    res.sendStatus(201)
+    res.sendStatus(201);
   } catch (error) {
     if (error instanceof BadRequest) return res.status(error.status).send(error.message);
-    res.sendStatus(500);
+
     console.log(error);
+    res.sendStatus(500);
   }
 }
 
 export async function deletePost(req, res) {
   const { user } = res.locals;
   let { id: postId } = req.params;
-  
+
   try {
-    await postsService.deletePost(user, postId)
+    await postsService.deletePost(user, postId);
 
     res.sendStatus(200);
   } catch (error) {
-    console.log(error);
     if (error instanceof NotFound || error instanceof Unauthorized) {
       return res.status(error.status).send(error.message);
     }
+
+    console.log(error);
     res.sendStatus(500);
   }
 }
@@ -75,8 +76,8 @@ export async function updatePost(req, res) {
       let newHashtagRep = currentHashtags[i];
       if (currentHashtags.indexOf(newHashtagRep) !== -1 &&
         currentHashtags.indexOf(newHashtagRep) !== i) {
-          res.status(400).send("Unable to edit, repeated hashtags, try again!");
-          return;
+        res.status(400).send("Unable to edit, repeated hashtags, try again!");
+        return;
       }
     }
 
@@ -261,44 +262,46 @@ export async function updatePost(req, res) {
 }
 
 export async function listPosts(req, res) {
-  const { id, hashtag } = req.params
+  const { id, hashtag } = req.params;
   const { user } = res.locals;
   const { limit } = req.query;
-  
+
   try {
-    const posts = await postsService.list(user.id, id, hashtag, limit)
-    
+    const posts = await postsService.list(user.id, id, hashtag, limit);
+
     res.send(posts);
   } catch (error) {
     if (error instanceof NoContent || error instanceof NotFound) return res.status(error.status).send(error.message);
 
     console.log(error);
-    res.status(500).send("Unexpected server error")
+    res.status(500).send("Unexpected server error");
   }
 }
 
 export async function deleteLike(req, res) {
-  const { id } = req.params
-  const { isLiked, userId } = req.body
+  const { id } = req.params;
+  const { isLiked, userId } = req.body;
 
   try {
-    await likesRepository.deleteLike(id, userId, isLiked)
-    res.sendStatus(200)
+    await likesRepository.deleteLike(id, userId, isLiked);
+
+    res.sendStatus(200);
   } catch (error) {
     console.log(error);
-    res.status(500).send("Unexpected server error")
+    res.status(500).send("Unexpected server error");
   }
 }
 
 export async function newLike(req, res) {
-  const { id } = req.params
-  const { isLiked, userId } = req.body
+  const { id } = req.params;
+  const { isLiked, userId } = req.body;
 
   try {
-    await likesRepository.insertLike(id, userId, isLiked)
-    res.sendStatus(200)
+    await likesRepository.insertLike(id, userId, isLiked);
+
+    res.sendStatus(200);
   } catch (error) {
     console.log(error);
-    res.status(500).send("Unexpected server error")
+    res.status(500).send("Unexpected server error");
   }
 }

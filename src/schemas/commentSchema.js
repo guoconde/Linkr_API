@@ -1,4 +1,4 @@
-import joi from "joi"
+import joi from "joi";
 
 const commentSchema = joi.object({
   userId: joi.number().required(),
