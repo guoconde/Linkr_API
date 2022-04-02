@@ -17,6 +17,14 @@ export async function createPost(req, res) {
   const { url, description } = req.body;
 
   try {
+    const currentHashtags = findHashtags(description);
+    
+    const isRepeatedHashtags = repeatedHashtags(currentHashtags);
+    if(isRepeatedHashtags){
+      res.status(400).send("You can't add repeated hashtags!");
+      return;
+    }
+
     await postsService.createPost(url, description, user);
 
     res.sendStatus(201);
