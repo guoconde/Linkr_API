@@ -9,7 +9,7 @@ export async function login(email, password) {
   if (!user) throw new Unauthorized("The email or password provided is invalid, please try again!");
 
   if (bcrypt.compareSync(password, user.password)) {
-    const jwtConfiguration = { expiresIn: '1h' };
+    const jwtConfiguration = { expiresIn: 60*60 };
     const jwtData = { userId: user.id };
 
     const session = await sessionRepository.find('"userId"', user.id);
