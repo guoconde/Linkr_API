@@ -9,7 +9,8 @@ export async function list(where, queryArgs, hashtagRelation, repostsWhere, limi
             COALESCE("postsReposted"."reposts", 0) AS "reposts",
             "userReposts"."postId" AS reposted,
             reposts.date, "sharerName", "sharerId",
-            COALESCE("postsCommented"."commentsCount", 0) AS "commentsCount"
+            COALESCE("postsCommented"."commentsCount", 0) AS "commentsCount",
+            "postsGeolocated".latitude AS latitude, "postsGeolocated".longitude AS longitude
     FROM 	reposts 
     JOIN posts ON posts.id = reposts."postId"
     ${hashtagRelation}
@@ -41,6 +42,11 @@ export async function list(where, queryArgs, hashtagRelation, repostsWhere, limi
       FROM comments
       GROUP BY "postId"
     ) AS "postsCommented" ON "postsCommented"."postId" = posts.id
+    LEFT JOIN(
+      SELECT "postId", "latitude", "longitude"
+      FROM geolocation
+      GROUP BY "postId", "latitude", "longitude"
+    ) AS "postsGeolocated" ON "postsGeolocated"."postId" = posts.id
     JOIN(
       SELECT users.name AS "sharerName", users.id AS "sharerId", reposts.id
       FROM reposts
@@ -55,7 +61,8 @@ export async function list(where, queryArgs, hashtagRelation, repostsWhere, limi
             COALESCE("postsReposted"."reposts", 0) AS "reposts",
             "userReposts"."postId" AS reposted,
             date , NULL AS "sharerName", NULL AS "sharerId",
-            COALESCE("postsCommented"."commentsCount", 0) AS "commentsCount"
+            COALESCE("postsCommented"."commentsCount", 0) AS "commentsCount",
+            "postsGeolocated".latitude AS latitude, "postsGeolocated".longitude AS longitude
     FROM posts
     ${hashtagRelation}
     JOIN users ON users.id = posts."userId"
@@ -82,6 +89,11 @@ export async function list(where, queryArgs, hashtagRelation, repostsWhere, limi
       GROUP BY "postId"
     ) AS "postsCommented" ON "postsCommented"."postId" = posts.id
     LEFT JOIN(
+      SELECT "postId", "latitude", "longitude"
+      FROM geolocation
+      GROUP BY "postId", "latitude", "longitude"
+    ) AS "postsGeolocated" ON "postsGeolocated"."postId" = posts.id
+    LEFT JOIN(
       SELECT "postId", COUNT(*) AS "reposts"
       FROM reposts
       GROUP BY "postId"
@@ -89,7 +101,7 @@ export async function list(where, queryArgs, hashtagRelation, repostsWhere, limi
     ${where}
     ORDER BY date DESC
     LIMIT ${limit}
-  `, queryArgs)
+  `, queryArgs);
 
   if (!posts.length) return [];
 
