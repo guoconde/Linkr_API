@@ -3,6 +3,7 @@ import loginSchema from "../schemas/loginSchema.js";
 import postSchema from "../schemas/postSchema.js";
 import userSchema from "../schemas/userSchema.js";
 import commentSchema from "../schemas/commentSchema.js";
+import geolocationSchema from "../schemas/geolocationSchema.js";
 
 function sanitizeString(string) {
   return (stripHtml(string).result).trim();
@@ -12,7 +13,8 @@ const schemas = {
   "/login": loginSchema,
   "/posts": postSchema,
   "/comments": commentSchema,
-  "/sign-up": userSchema
+  "/sign-up": userSchema,
+  "/geolocation": geolocationSchema
 }
 
 export default async function validateSchemaMiddleware(req, res, next) {
