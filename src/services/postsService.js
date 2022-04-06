@@ -4,6 +4,7 @@ import * as repostRepository from "../repositories/repostsRepository.js";
 import * as hashtagService from "../services/hashtagsService.js";
 import * as likeRepository from "../repositories/likeRepository.js";
 import * as commentsRepository from "../repositories/commentsRepository.js";
+import * as geolocationRepository from "../repositories/geolocationRepository.js";
 import urlMetadata from "url-metadata";
 import NotFound from "../errors/NotFoundError.js";
 import Unauthorized from "../errors/UnauthorizedError.js";
@@ -119,6 +120,12 @@ export async function createPost(url, description, user){
   }
 }
 
+export async function lastPost(userId) {
+  const promise = await postsRepository.lastPost(userId);
+
+  return promise;
+}
+
 export async function deletePost(user, postId){
   if (isNaN(postId)) throw new BadRequest();
 
@@ -131,6 +138,8 @@ export async function deletePost(user, postId){
   await repostRepository.deleteRepostsRelation(postId);
 
   await commentsRepository.deleteComments(postId);
+
+  await geolocationRepository.deleteGeolocation(postId);
 
   await postsRepository.deletePost(postId);
 }

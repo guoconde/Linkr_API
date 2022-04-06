@@ -173,6 +173,23 @@ export async function listPosts(req, res) {
   }
 }
 
+export async function listLastPost(_req, res) {
+  const { user } = res.locals;
+
+  try {
+    const lastPost = await postsService.lastPost(user.id);
+    if(lastPost.rowCount === 0){
+      res.sendStatus(400);
+      return;
+    }
+
+    res.send({ postId: lastPost.rows[0].id, userId: lastPost.rows[0].userId });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("Unexpected server error");
+  }
+}
+
 export async function deleteLike(req, res) {
   const { id } = req.params;
   const { isLiked, userId } = req.body;

@@ -171,3 +171,16 @@ export async function getCountPosts(userId) {
 
   return promise;
 }
+
+export async function lastPost(userId) {
+  const promise = await connection.query(`
+    SELECT 
+      * 
+    FROM posts 
+    WHERE "userId"=$1 
+    ORDER BY id DESC 
+    LIMIT 1
+  `, [userId]);
+
+  return promise;
+}
